@@ -1,0 +1,10 @@
+[submodule "BioLab/External/glfw"]
+	path = BioLab/External/glfw
+	url = https://github.com/glfw/glfw
+[submodule "BioLab/External/imgui"]
+	path = BioLab/External/imgui
+	url = https://github.com/ocornut/imgui
+	branch = docking
+[submodule "BioLab/External/implot"]
+	path = BioLab/External/implot
+	url = https://github.com/epezent/implot
