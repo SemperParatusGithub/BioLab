@@ -1,6 +1,22 @@
 project(BioLab)
 
-add_executable(BioLab Source/Main.cpp)
+set(HEADERS
+    Source/Application.h
+    Source/Console.h    
+    Source/UI/UICore.h
+    Source/UI/Window.h
+)
+
+# Local source files here
+set(SOURCES
+     Source/Main.cpp
+     Source/Application.cpp
+     Source/Console.cpp
+     Source/UI/UICore.cpp
+     Source/UI/Window.cpp
+)
+
+add_executable(BioLab WIN32 ${SOURCES} ${HEADERS})
 
 
 ### GLFW
@@ -50,11 +66,6 @@ target_include_directories(implot PRIVATE
 )
 target_link_libraries(implot PRIVATE
     imgui
-)
-
-file(GLOB 
-    SOURCES CONFIGURE_DEPENDS
-    Source/Main.cpp
 )
 
 target_link_libraries(BioLab
