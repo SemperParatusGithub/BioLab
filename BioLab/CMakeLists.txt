@@ -3,6 +3,7 @@ project(BioLab)
 set(HEADERS
     Source/Application.h
     Source/Console.h    
+    Source/Core.h
     Source/UI/UICore.h
     Source/UI/Window.h
 )

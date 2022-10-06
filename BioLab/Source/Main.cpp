@@ -2,7 +2,6 @@
 #include "Console.h"
 
 #include <Windows.h>
-#include <iostream>
 
 
 int APIENTRY WinMain(
@@ -11,15 +10,18 @@ int APIENTRY WinMain(
     LPSTR       cmdline, 
     int         cmdshow)
 {
+#ifdef _DEBUG
     Console::Create();
+#endif
 
     Application* app = new Application();
     app->Run();
     delete app;
 
-	std::cin.get();
-
+#ifdef _DEBUG
+    std::cin.get();
     Console::Release();
+#endif
 
     return EXIT_SUCCESS;
 }

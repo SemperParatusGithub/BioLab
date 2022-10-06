@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 
-bool Console::Create(std::uint32_t sizeX, std::uint32_t sizeY)
+bool Console::Create(const Vector2f& consoleSize, const Vector2f& bufferSize)
 {
     bool success = true;
 
@@ -22,8 +22,11 @@ bool Console::Create(std::uint32_t sizeX, std::uint32_t sizeY)
         HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
         HANDLE errorHandle = GetStdHandle(STD_ERROR_HANDLE);
 
-        COORD size = { static_cast<short>(sizeX), static_cast<short>(sizeY) };
-        SetConsoleScreenBufferSize(outputHandle, size);
+        SMALL_RECT cRect = { 0, 0, static_cast<short>(consoleSize.x), static_cast<short>(consoleSize.y) };
+        SetConsoleWindowInfo(outputHandle, true, &cRect);
+
+        COORD bSize = { static_cast<short>(bufferSize.x), static_cast<short>(bufferSize.y) };
+        SetConsoleScreenBufferSize(outputHandle, bSize);
 
 
         // Redirect console output

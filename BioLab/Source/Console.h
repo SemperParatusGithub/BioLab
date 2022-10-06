@@ -1,11 +1,11 @@
 #pragma once
 
-#include <iostream>
+#include "Core.h"
 
 
 class Console
 {
 public:
-	static bool Create(std::uint32_t sizeX = 1024, std::uint32_t sizeY = 1024);
+	static bool Create(const Vector2f& consoleSize = { 50.0f, 20.0f }, const Vector2f& bufferSize = { 1024.0f, 1024.0f });
 	static bool Release();
 };
