@@ -8,3 +8,6 @@
 [submodule "BioLab/External/implot"]
 	path = BioLab/External/implot
 	url = https://github.com/epezent/implot
+[submodule "BioLab/Arduino"]
+	path = BioLab/Arduino
+	url = https://github.com/ikashii/BioLab_Arduino
