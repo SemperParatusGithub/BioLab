@@ -4,6 +4,7 @@ set(HEADERS
     Source/Application.h
     Source/Console.h    
     Source/Core.h
+    Source/SerialPort.h
     Source/UI/UICore.h
     Source/UI/Window.h
 )
@@ -13,6 +14,7 @@ set(SOURCES
      Source/Main.cpp
      Source/Application.cpp
      Source/Console.cpp
+     Source/SerialPort.cpp
      Source/UI/UICore.cpp
      Source/UI/Window.cpp
 )
