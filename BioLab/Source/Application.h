@@ -9,7 +9,7 @@
 #include <mutex>
 
 
-#define ARDUINO_PORT "\\\\.\\COM4"
+#define ARDUINO_PORT "\\\\.\\COM7"
 
 
 class Application
@@ -25,7 +25,7 @@ private:
 	void ReadSerialPort();
 
 private:
-	std::queue<Vector3f> m_InputQueue;
+	std::queue<Vector4f> m_InputQueue;
 	std::mutex m_InputQueueMutex;
 
 	std::unique_ptr<Window> m_Window;
@@ -34,5 +34,7 @@ private:
 	std::atomic<bool> m_SerialThreadRunning = true;
 
 	std::vector<float> m_LiveValuesX;
-	std::vector<float> m_LiveValuesCH1, m_LiveValuesCH2;
+	std::vector<float> m_LiveValuesCH1, m_LiveValuesCH2, m_LiveValuesCH3;
+
+	std::vector<int> m_ChannelsToPlot;
 };

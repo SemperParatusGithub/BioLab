@@ -5,6 +5,13 @@
 #include <imgui.h>
 #include <implot.h>
 
+#include <GLFW/glfw3.h>
+
+typedef struct
+{
+	uint32_t sampleIndex;			// Number of sample
+	uint16_t ch0, ch1, ch2;			// Sample values
+} DataPackage;
 
 
 Application::Application()
@@ -12,9 +19,15 @@ Application::Application()
 	LOG_INFO("creating Application");
 
 	m_Window = std::make_unique<Window>("BioLab", 1280, 720);
+	m_Window->SetMinimumSize(Vector2f{ 1280.0f, 720.0f });
 	m_Window->Maximize();
 
+	//const auto* vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+	//m_Window->SetPosition(Vector2f{ vidmode->width / 2.0f - 640.0f, vidmode->height / 2.0f - 360.0f });
+
 	m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
+
+	glfwSwapInterval(0);
 }
 
 Application::~Application()
@@ -33,6 +46,7 @@ void Application::Run()
 	m_LiveValuesX.push_back(-0.1f);
 	m_LiveValuesCH1.push_back(0.0f);
 	m_LiveValuesCH2.push_back(0.0f);
+	m_LiveValuesCH3.push_back(0.0f);
 
 	for (int i = 0; i < 1000; i++)
 	{
@@ -57,42 +71,86 @@ void Application::Run()
 				m_LiveValuesX.push_back(sample.x);
 				m_LiveValuesCH1.push_back(sample.y);
 				m_LiveValuesCH2.push_back(sample.z);
+				m_LiveValuesCH3.push_back(sample.w);
 			
 				m_InputQueue.pop();
 			}
 			m_InputQueueMutex.unlock();
 		}
 
-		m_InputQueueMutex.lock();
-		if (m_LiveValuesX.size() >= 10000)
+
+		if (m_LiveValuesX.size() >= 1000)
 		{
 			m_LiveValuesX.erase(m_LiveValuesX.begin(), m_LiveValuesX.begin() + 250);
 			m_LiveValuesCH1.erase(m_LiveValuesCH1.begin(), m_LiveValuesCH1.begin() + 250);
 			m_LiveValuesCH2.erase(m_LiveValuesCH2.begin(), m_LiveValuesCH2.begin() + 250);
+			m_LiveValuesCH3.erase(m_LiveValuesCH3.begin(), m_LiveValuesCH3.begin() + 250);
 		}
-		m_InputQueueMutex.unlock();
 
-		ImGui::Begin("Test Window");
-		ImGui::Text("Hello, World!");
-		static float var = 0.0f;
-		ImGui::SliderFloat("value", &var, 0.0f, 100.0f);
-		ImGui::Text("%.2f", (float)m_LiveValuesX[0] - 40.f);
-		ImGui::Text("%.2f", (float)m_LiveValuesX.back() + 40.f);
-		ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
-		ImGui::End();
-
-		ImGui::Begin("Graph");
-		ImPlot::SetNextAxisLimits(ImAxis_Y1, -2, 2, ImGuiCond_FirstUseEver);
-		ImPlot::SetNextAxisLimits(ImAxis_X1, (float)m_LiveValuesX.back() - 9750, (float)m_LiveValuesX.back() + 250.f, ImGuiCond_Always);
-		if (ImPlot::BeginPlot("##Digital", 0, 0, ImGui::GetContentRegionAvail())) 
+		bool minimized = m_Window->GetSize().x == 0 && m_Window->GetSize().y == 0;
+		if (!minimized)
 		{
-			ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-			ImPlot::PlotLine("CH1", m_LiveValuesX.data(), m_LiveValuesCH1.data(), m_LiveValuesX.size());
-			ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-			ImPlot::PlotLine("CH2", m_LiveValuesX.data(), m_LiveValuesCH2.data(), m_LiveValuesX.size());
-			ImPlot::EndPlot();
+			ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+				ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+			ImGuiViewport* viewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(viewport->Pos);
+			ImGui::SetNextWindowSize(viewport->Size);
+			ImGui::SetNextWindowViewport(viewport->ID);
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			//ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+			ImGui::Begin("Test Window", (bool*)0, windowFlags);
+
+			ImGui::PopStyleVar(1);
+
+			auto avail = ImGui::GetContentRegionAvail();
+			auto spacing = ImGui::GetStyle().ItemSpacing;
+			ImGui::BeginChild("Control:Child", ImVec2(avail.x / 4, -1.0f), true);
+			ImGui::Text("[Controls]");
+			ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
+			ImGui::Spacing();
+			ImGui::Text("[Buffer sizes]");
+			ImGui::Text("X:   %d", m_LiveValuesX.size());
+			ImGui::Text("CH1: %d", m_LiveValuesCH1.size());
+			ImGui::Text("CH3: %d", m_LiveValuesCH2.size());
+			ImGui::Text("CH4: %d", m_LiveValuesCH3.size());
+			m_InputQueueMutex.lock();
+			ImGui::Text("queue: %d", m_InputQueue.size());
+			m_InputQueueMutex.unlock();
+			ImGui::EndChild();
+
+			ImGui::SameLine();
+			
+			ImVec2 graphSize = ImVec2(avail.x * 3 / 4 - spacing.x, -1.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+			ImGui::BeginChild("Graph:Child", graphSize, false);
+			// plot data
+			{
+				ImPlot::SetNextAxisLimits(ImAxis_Y1, -2000, 6500, ImGuiCond_FirstUseEver);\
+				ImPlot::SetNextAxisLimits(ImAxis_X1, (float)m_LiveValuesX.back() - 9000.0f, (float)m_LiveValuesX.back() + 1000.0f, ImGuiCond_Always);\
+
+				ImPlot::BeginPlot("##plot", 0, 0, graphSize);
+
+				ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
+				ImPlot::PlotLine("CH1", m_LiveValuesX.data(), m_LiveValuesCH1.data(), m_LiveValuesX.size());	
+
+				ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
+				ImPlot::PlotLine("CH2", m_LiveValuesX.data(), m_LiveValuesCH2.data(), m_LiveValuesX.size());	
+
+				ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
+				ImPlot::PlotLine("CH3", m_LiveValuesX.data(), m_LiveValuesCH3.data(), m_LiveValuesX.size());
+
+				ImPlot::EndPlot();
+
+				ImGui::PopStyleVar();
+			}
+			ImGui::EndChild();
+
+			ImGui::End();
 		}
-		ImGui::End();
 
 		m_Window->EndFrame();
 	}
@@ -118,14 +176,9 @@ void Application::ReadSerialPort()
 		char key;
 		if (m_SerialPort.Read(&key, 1) && key == 120)
 		{
-			Vector3f sample;
-			if (m_SerialPort.Read((void*)&sample, 12))
+			DataPackage package;
+			if (m_SerialPort.Read((void*)&package, 10))
 			{
-				//std::cout <<
-				//	sample.x << ", " <<
-				//	sample.y << ", " <<
-				//	sample.z << "\n";
-
 				samplesReceived++;
 
 				if (idx <= 10)
@@ -135,6 +188,8 @@ void Application::ReadSerialPort()
 				}
 
 				idx = 0;
+				Vector4f sample = { package.sampleIndex, 
+					package.ch0, package.ch1, package.ch2 };
 
 				const std::lock_guard<std::mutex> lock(m_InputQueueMutex);
 				m_InputQueue.push(sample);

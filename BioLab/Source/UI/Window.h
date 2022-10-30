@@ -30,6 +30,9 @@ public:
 	void SetPosition(const Vector2f& pos);
 	void SetSize(const Vector2f& size);
 
+	void SetMinimumSize(const Vector2f& size);
+	void SetMaximumSize(const Vector2f& size);
+
 private:
 	GLFWwindow* m_Window;
 };

@@ -113,3 +113,20 @@ void Window::SetSize(const Vector2f& size)
 		static_cast<int>(size.x), 
 		static_cast<int>(size.y));
 }
+
+void Window::SetMinimumSize(const Vector2f& size)
+{
+	glfwSetWindowSizeLimits(m_Window,
+		static_cast<int>(size.x),
+		static_cast<int>(size.y),
+		GLFW_DONT_CARE, 
+		GLFW_DONT_CARE);
+}
+void Window::SetMaximumSize(const Vector2f& size)
+{
+	glfwSetWindowSizeLimits(m_Window,
+		GLFW_DONT_CARE,
+		GLFW_DONT_CARE,
+		static_cast<int>(size.x),
+		static_cast<int>(size.y));
+}
