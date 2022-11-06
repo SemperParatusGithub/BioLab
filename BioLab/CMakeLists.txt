@@ -7,6 +7,7 @@ set(HEADERS
     Source/SerialPort.h
     Source/UI/UICore.h
     Source/UI/Window.h
+    Source/UI/IconsMaterialDesign.h
 )
 
 # Local source files here

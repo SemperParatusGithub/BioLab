@@ -8,6 +8,8 @@
 #include <atomic>
 #include <mutex>
 
+#include <imgui.h>
+
 
 #define ARDUINO_PORT "\\\\.\\COM7"
 
@@ -24,6 +26,9 @@ public:
 private:
 	void ReadSerialPort();
 
+	void BeginDockspace();
+	void EndDockspace();
+
 private:
 	std::queue<Vector4f> m_InputQueue;
 	std::mutex m_InputQueueMutex;
@@ -36,5 +41,5 @@ private:
 	std::vector<float> m_LiveValuesX;
 	std::vector<float> m_LiveValuesCH1, m_LiveValuesCH2, m_LiveValuesCH3;
 
-	std::vector<int> m_ChannelsToPlot;
+	ImFont* m_BigIcons;
 };

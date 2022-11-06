@@ -11,4 +11,9 @@ public:
 
 	static void BeginFrame();
 	static void EndFrame();
+
+	static void SetStyle();
+
+	static void SetLightColorTheme();
+	static void SetDarkColorTheme();
 };
