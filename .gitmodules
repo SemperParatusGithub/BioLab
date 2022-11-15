@@ -11,3 +11,6 @@
 [submodule "BioLab/Arduino"]
 	path = BioLab/Arduino
 	url = https://github.com/ikashii/BioLab_Arduino
+[submodule "BioLab/External/imgui-node-editor"]
+	path = BioLab/External/imgui-node-editor
+	url = https://github.com/thedmd/imgui-node-editor
