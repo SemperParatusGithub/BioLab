@@ -3,6 +3,11 @@
 #include "UI/Window.h"
 #include "SerialPort.h"
 
+#include "NodeEditor/Node.h"
+#include "NodeEditor/Comment.h"
+
+#include "NodeEditor/NodeEditor.h"
+
 #include <queue>
 #include <thread>
 #include <atomic>
@@ -42,4 +47,6 @@ private:
 	std::vector<float> m_LiveValuesCH1, m_LiveValuesCH2, m_LiveValuesCH3;
 
 	ImFont* m_BigIcons;
+
+	std::unique_ptr<NodeEditor> m_NodeEditor;
 };

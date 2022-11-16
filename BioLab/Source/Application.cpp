@@ -37,8 +37,9 @@ Application::Application()
 
 	m_BigIcons = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 42, 0, icons_ranges);
 
-	m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
+	m_NodeEditor = std::make_unique<NodeEditor>();
 
+	m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
 	glfwSwapInterval(0);
 }
 
@@ -82,7 +83,6 @@ void Application::Run()
 			m_InputQueueMutex.unlock();
 		}
 
-
 		if (m_LiveValuesX.size() >= 1000)
 		{
 			m_LiveValuesX.erase(m_LiveValuesX.begin(), m_LiveValuesX.begin() + 250);
@@ -117,19 +117,18 @@ void Application::Run()
 				ImGui::End();
 			}
 
-			static float xdata[] = { 1, 2, 3, 4, 5, 6 };
-			static float ydata[] = { 2, 4, 1, 5, 3, 4 };
-			static bool barWindowOpen = true;
-			if (barWindowOpen)
+			static bool nodeEditorOpen = true;
+			if (nodeEditorOpen)
 			{
-				if (ImGui::Begin(ICON_MD_INSERT_CHART" Bar Plot", &barWindowOpen, ImGuiWindowFlags_NoCollapse))
+				if (ImGui::Begin(ICON_MD_INSERT_CHART" Bar Plot", &nodeEditorOpen, ImGuiWindowFlags_NoCollapse))
 				{
-					ImPlot::BeginPlot("Histogram", ImGui::GetContentRegionAvail());
-					ImPlot::PlotBars("Data", xdata, ydata, 6, 0.6f);
-					ImPlot::EndPlot();
+					m_NodeEditor->Render(ImGui::GetContentRegionAvail());
 				}
 				ImGui::End();
 			}
+
+			m_NodeEditor->ShowDebugWindow();
+			ImGui::ShowDemoWindow();
 
 			EndDockspace();
 		}
@@ -143,6 +142,8 @@ void Application::ReadSerialPort()
 	std::cout << "Starting Serial Reader thread" << std::endl;
 
 	m_SerialPort.Open(ARDUINO_PORT, 1000000);
+	if (!m_SerialPort.IsConnected())
+		return;
 	std::this_thread::sleep_for(std::chrono::seconds(2));
 	m_SerialPort.ClearQueue();
 

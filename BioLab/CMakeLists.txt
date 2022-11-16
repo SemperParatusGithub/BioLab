@@ -5,6 +5,11 @@ set(HEADERS
     Source/Console.h    
     Source/Core.h
     Source/SerialPort.h
+    Source/NodeEditor/Comment.h
+    Source/NodeEditor/Node.h
+    Source/NodeEditor/NodeEditor.h
+    Source/NodeEditor/Scope.h
+    Source/NodeEditor/Source.h
     Source/UI/UICore.h
     Source/UI/Window.h
     Source/UI/IconsMaterialDesign.h
@@ -14,11 +19,19 @@ set(SOURCES
     Source/Application.cpp
     Source/Console.cpp
     Source/SerialPort.cpp
+    Source/NodeEditor/Comment.cpp
+    Source/NodeEditor/Node.cpp
+    Source/NodeEditor/NodeEditor.cpp
+    Source/NodeEditor/Scope.cpp
+    Source/NodeEditor/Source.cpp
     Source/UI/UICore.cpp
     Source/UI/Window.cpp
 )
 
 add_executable(BioLab WIN32 ${SOURCES} ${HEADERS})
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${HEADERS})
 
 
 ### GLFW
@@ -107,6 +120,7 @@ target_link_libraries(BioLab
     opengl32.lib
 )
 target_include_directories(BioLab PUBLIC 
+    Source
     External/glfw/include
     External/imgui
     External/implot
