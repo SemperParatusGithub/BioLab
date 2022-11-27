@@ -7,8 +7,35 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui_internal.h>
 
+#include "UI/IconsMaterialDesign.h"
 
-static Pin* newLinkPin = nullptr;
+#include <stb_image.h>
+
+#include <GLFW/glfw3.h>
+
+
+static u32 LoadTexture(const char* filepath)
+{
+	LOG_INFO("Loading texture: %s", filepath);
+
+	int width = 0, height = 0, channels = 0;
+
+	if (stbi_uc* data = stbi_load(filepath, &width, &height, &channels, 4))
+	{
+		u32 textureID;
+
+		glGenTextures(1, &textureID);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+		return textureID;
+	}
+
+	LOG_ERROR("Failed to load texture: %s", filepath);
+	return 0;
+}
 
 
 NodeEditor::NodeEditor(const NodeEditorConfig& config)
@@ -18,11 +45,14 @@ NodeEditor::NodeEditor(const NodeEditorConfig& config)
 	ax::NodeEditor::Config internalConfig;
 	internalConfig.SettingsFile = "Test.json";
 
+	m_HeaderTextureID = LoadTexture("../../BioLab/Ressources/BlueprintBackground.png");
+
 	m_EditorContext = ax::NodeEditor::CreateEditor(&internalConfig);
 
 	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
 	ax::NodeEditor::GetStyle() = ax::NodeEditor::Style();
 	ax::NodeEditor::GetStyle().FlowDuration = 0.1f;
+	ax::NodeEditor::GetStyle().LinkStrength = 350.0f;
 	ax::NodeEditor::SetCurrentEditor(nullptr);
 
 	ImFontConfig fontConfig;
@@ -31,16 +61,25 @@ NodeEditor::NodeEditor(const NodeEditorConfig& config)
 	fontConfig.PixelSnapH = false;
 	m_Font = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/Play-Regular.ttf", 15, &fontConfig);
 
-	m_Nodes.push_back(new Comment(GetNextNodeID(), "Test Comment", Vector2f{ 0.0f, 0.0f }, Vector2f{ 500.0f, 100.0f }));
+	m_Nodes.push_back(new Comment(GetNextNodeID(), ICON_MD_INSERT_COMMENT"  Test Comment", Vector2f{ 0.0f, 0.0f }, Vector2f{ 500.0f, 100.0f }));
+	 
+	m_Nodes.push_back(new Source(GetNextNodeID(), ICON_MD_POST_ADD"  Channel 1", Vector2f{ 250.0f, 10.0f }, Vector2f{ 100.0f, 80.0f }));
+	m_Nodes.back()->OutputPin = Pin{ "Output1", GetNextPinID(), PinKind::Output, m_Nodes.back(), true };
+	
+	m_Nodes.push_back(new Source(GetNextNodeID(), ICON_MD_POST_ADD "  Channel 2", Vector2f{ 250.0f, 10.0f }, Vector2f{ 100.0f, 80.0f }));
+	m_Nodes.back()->OutputPin = Pin{ "Output2", GetNextPinID(), PinKind::Output, m_Nodes.back(), true };	
 
-	m_Nodes.push_back(new Source(GetNextNodeID(), "Test Source 1", Vector2f{ 100.0f, 10.0f }, Vector2f{ 100.0f, 80.0f }));
-	m_Nodes.back()->GetOutputPins().push_back(Pin{ "Input Pin", ax::NodeEditor::PinId(GetNextPinID()), PinKind::Output, m_Nodes.back() });
+	m_Nodes.push_back(new Source(GetNextNodeID(), ICON_MD_POST_ADD "  Channel 3", Vector2f{ 250.0f, 10.0f }, Vector2f{ 100.0f, 80.0f }));
+	m_Nodes.back()->OutputPin = Pin{ "Output3", GetNextPinID(), PinKind::Output, m_Nodes.back(), true };
+	
+	m_Nodes.push_back(new Scope(GetNextNodeID(), ICON_MD_DESKTOP_WINDOWS "  Scope 1", Vector2f{ 500.0f, 10.0f }, Vector2f{ 120.0f, 80.0f }));
+	m_Nodes.back()->InputPin = Pin{ "Input1", ax::NodeEditor::PinId(GetNextPinID()), PinKind::Input, m_Nodes.back(), true };
 
-	m_Nodes.push_back(new Source(GetNextNodeID(), "Test Source 2", Vector2f{ 100.0f, 10.0f }, Vector2f{ 100.0f, 80.0f }));
-	m_Nodes.back()->GetOutputPins().push_back(Pin{ "Input Pin", ax::NodeEditor::PinId(GetNextPinID()), PinKind::Output, m_Nodes.back() });
+	m_Nodes.push_back(new Scope(GetNextNodeID(), ICON_MD_DESKTOP_WINDOWS "  Scope 2", Vector2f{ 500.0f, 10.0f }, Vector2f{ 120.0f, 80.0f }));
+	m_Nodes.back()->InputPin = Pin{ "Input2", ax::NodeEditor::PinId(GetNextPinID()), PinKind::Input, m_Nodes.back(), true };
 
-	m_Nodes.push_back(new Scope(GetNextNodeID(), "Test Scope", Vector2f{ 300.0f, 10.0f }, Vector2f{ 100.0f, 80.0f }));
-	m_Nodes.back()->GetInputPins().push_back(Pin{ "Input Pin", ax::NodeEditor::PinId(GetNextPinID()), PinKind::Input, m_Nodes.back() });
+	m_Nodes.push_back(new Scope(GetNextNodeID(), ICON_MD_DESKTOP_WINDOWS "  Scope 3", Vector2f{ 500.0f, 10.0f }, Vector2f{ 120.0f, 80.0f }));
+	m_Nodes.back()->InputPin = Pin{ "Input3", ax::NodeEditor::PinId(GetNextPinID()), PinKind::Input, m_Nodes.back(), true };
 }
 NodeEditor::~NodeEditor()
 {
@@ -48,12 +87,19 @@ NodeEditor::~NodeEditor()
 		delete node;
 }
 
-void NodeEditor::Render(const ImVec2& size)
+void NodeEditor::Render()
 {
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5, 5));
+	ImGui::Begin(ICON_MD_INSERT_CHART" Node Editor", 0, ImGuiWindowFlags_NoCollapse);
+
 	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
-	ImGui::PushFont(m_Font);
+	ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+	ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodePadding, ImVec4(8, 4, 8, 8));
 
 	ax::NodeEditor::Begin("Node Editor", ImGui::GetContentRegionAvail());
+
+
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
 
 	for (auto& node : m_Nodes)
 	{
@@ -64,54 +110,84 @@ void NodeEditor::Render(const ImVec2& size)
 			continue;
 		}
 
-		ax::NodeEditor::BeginNode(node->GetNodeID());
+		ax::NodeEditor::BeginNode(node->ID);
+		ImGui::PushID(node->ID.AsPointer());
 
-		// Name/title
-		ImGui::Text("%s (ID: %d)", node->GetName().c_str(), node->GetNodeID().Get());
-
-		// Inputs and Outputs
-		ImGui::Text("[Inputs]");
-		for (auto& input : node->GetInputPins())
+		// Render Header
 		{
-			auto alpha = ImGui::GetStyle().Alpha;
-			if (newLinkPin && !CanCreateLink(newLinkPin, &input) && &input != newLinkPin)
-				alpha = alpha * (48.0f / 255.0f);
-
-			ax::NodeEditor::BeginPin(input.ID, ax::NodeEditor::PinKind::Input);
-			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-			ImGui::Text("IN"); ImGui::SameLine();
-			ax::NodeEditor::EndPin();
+			ImGui::BeginGroup();
+			auto ts = ImGui::CalcTextSize(node->Name.c_str());
+			ImGui::Spacing();
+			ImGui::TextUnformatted(node->Name.c_str());
 			ImGui::SameLine();
-			ImGui::TextUnformatted(input.Name.c_str());
-			ImGui::PopStyleVar();
+			ImGui::Dummy(ImVec2(node->Size.x - ts.x - 8, ts.y));
+			ImGui::Spacing();
+			ImGui::EndGroup();
 		}
 
-		ImGui::Text("[Outputs]");
-		for (auto& output : node->GetOutputPins())
+		ImVec2 currentHeaderMin = ImGui::GetItemRectMin();
+		ImVec2 currentHeaderMax = ImGui::GetItemRectMax();
+
+		ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.26f, 0.59f, 0.98f, 1.0f));
+		if (node->InputPin.Active)
 		{
-			auto alpha = ImGui::GetStyle().Alpha;
-			if (newLinkPin && !CanCreateLink(newLinkPin, &output) && &output != newLinkPin)
-				alpha = alpha * (48.0f / 255.0f);
-
-			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-			ImGui::TextUnformatted(output.Name.c_str());
-			ax::NodeEditor::BeginPin(output.ID, ax::NodeEditor::PinKind::Output);
-			ImGui::Text("OUT");
+			ax::NodeEditor::BeginPin(node->InputPin.ID, ax::NodeEditor::PinKind::Input);
+			if (IsPinConnected(node->InputPin.ID))
+				ImGui::Text(ICON_MD_LABEL);
+			else
+				ImGui::Text(ICON_MD_LABEL_OUTLINE);
 			ax::NodeEditor::EndPin();
-			ImGui::PopStyleVar();
 		}
-
+		if (node->OutputPin.Active)
+		{
+			if (!node->InputPin.Active)
+				ImGui::NewLine();
+			
+			ImGui::SameLine(node->Size.x - ImGui::CalcTextSize(ICON_MD_LABEL_OUTLINE).x);
+			ax::NodeEditor::BeginPin(node->OutputPin.ID, ax::NodeEditor::PinKind::Output);
+			if (IsPinConnected(node->OutputPin.ID))
+				ImGui::Text(ICON_MD_LABEL);
+			else
+				ImGui::Text(ICON_MD_LABEL_OUTLINE);
+			ax::NodeEditor::EndPin();
+		}
+		ImGui::PopStyleColor();
+		ImGui::PopFont();
 		node->Render();
 
+		ImGui::PopID();
 		ax::NodeEditor::EndNode();
+
+		// Render Header Background
+		{
+			auto dl = ax::NodeEditor::GetNodeBackgroundDrawList(node->ID);
+			const auto halfBorderWidth = ax::NodeEditor::GetStyle().NodeBorderWidth * 0.5f;
+			const auto alpha = static_cast<int>(255 * ImGui::GetStyle().Alpha);
+
+			ImU32 HeaderColor = IM_COL32(66, 150, 250, 200);
+			auto headerColor = IM_COL32(0, 0, 0, alpha) | (HeaderColor & IM_COL32(255, 255, 255, 0));
+
+			dl->AddImageRounded((ImTextureID)m_HeaderTextureID,
+				currentHeaderMin - ImVec2(8 - halfBorderWidth, 4 - halfBorderWidth),
+				currentHeaderMax + ImVec2(8 - halfBorderWidth, 0),
+				ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f),
+				headerColor, ax::NodeEditor::GetStyle().NodeRounding, ImDrawFlags_RoundCornersTop);
+		}
 	}
+
+	ImGui::PopStyleColor();
 
 	HandleLinks();
 
 	ax::NodeEditor::End();
 
 	ImGui::PopFont();
+	ax::NodeEditor::PopStyleVar();
 	ax::NodeEditor::SetCurrentEditor(nullptr);
+
+	ImGui::End();
+	ImGui::PopStyleVar();
 }
 
 void NodeEditor::ShowDebugWindow()
@@ -121,10 +197,10 @@ void NodeEditor::ShowDebugWindow()
 	{
 		for (auto* node : m_Nodes)
 		{
-			ImGui::Text(node->GetName().c_str());
-			ImGui::Text("ID: %d", node->GetNodeID());
-			ImGui::Text("Position: %.2f, %.2f", node->GetPosition().x, node->GetPosition().y);
-			ImGui::Text("Size: %.2f, %.2f", node->GetSize().x, node->GetSize().y);
+			ImGui::Text(node->Name.c_str());
+			ImGui::Text("ID: %d", node->ID);
+			ImGui::Text("Position: %.2f, %.2f", node->Position.x, node->Position.y);
+			ImGui::Text("Size: %.2f, %.2f", node->Size.x, node->Size.y);
 			ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing();
@@ -156,23 +232,16 @@ ax::NodeEditor::PinId NodeEditor::GetNextPinID()
 	return ax::NodeEditor::PinId(m_CurrentPinID);
 }
 
-bool NodeEditor::CanCreateLink(Pin* a, Pin* b)
-{
-	if (!a || !b || a == b || a->Kind == b->Kind || a->Node == b->Node)
-		return false;
-
-	return true;
-}
-
 void NodeEditor::HandleLinks()
 {
-	// Submit Links
-	for (auto& linkInfo : m_Links)
-		ax::NodeEditor::Link(linkInfo.ID, linkInfo.StartPinID, linkInfo.EndPinID);
+	// taken from examples
 
+	// Submit Links
+	for (auto& link : m_Links)
+		ax::NodeEditor::Link(link.ID, link.StartPinID, link.EndPinID, ImVec4(0.26f, 0.59f, 0.98f, 0.75f), 5.0f);
 
 	// Handle creation action, returns true if editor want to create new object (node or link)
-	if (ax::NodeEditor::BeginCreate())
+	if (ax::NodeEditor::BeginCreate(ImVec4(0.26f, 0.59f, 0.98f, 0.75f), 6.0f))
 	{
 		ax::NodeEditor::PinId inputPinId, outputPinId;
 		if (ax::NodeEditor::QueryNewLink(&inputPinId, &outputPinId))
@@ -189,7 +258,7 @@ void NodeEditor::HandleLinks()
 			//   * input invalid, output valid - user started to drag new ling from output pin
 			//   * input valid, output valid   - user dragged link over other pin, can be validated
 
-			if (inputPinId && outputPinId) // both are valid, let's accept link
+			if (CanCreateLink(inputPinId, outputPinId)) // both are valid, let's accept link
 			{
 				// ax::NodeEditor::AcceptNewItem() return true when user release mouse button.
 				if (ax::NodeEditor::AcceptNewItem())

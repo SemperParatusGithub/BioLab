@@ -28,35 +28,20 @@ struct Pin
 	ax::NodeEditor::PinId ID;
 	PinKind Kind;
 	Node* Node;
+	bool Active = false;
 };
 
 class Node
 {
-protected:
-	std::string m_NodeName;
-	Vector2f m_Position;
-	Vector2f m_Size;
-
-	ax::NodeEditor::NodeId m_NodeID;
-
-	std::vector<Pin> m_InputPins;
-	std::vector<Pin> m_OutputPins;
-
 public:
-	std::vector<Pin>& GetInputPins() { return m_InputPins; }
-	std::vector<Pin>& GetOutputPins() { return m_OutputPins; }
+	std::string Name;
+	ax::NodeEditor::NodeId ID;
 
-	const std::string& GetName() const { return m_NodeName; }
-	const Vector2f& GetPosition() const { return m_Position; }
-	const Vector2f& GetSize() const { return m_Position; }
-	ax::NodeEditor::NodeId GetNodeID() const { return m_NodeID; }
+	Vector2f Position;
+	Vector2f Size;
 
-	void SetName(const std::string& name) { m_NodeName = name; }
-	void SetPosition(const Vector2f& position) { m_Position = position; }
-	void SetSize(const Vector2f& size) { m_Size = size; }
-
-protected:
-	void SetNodeID(ax::NodeEditor::NodeId nodeID) { m_NodeID = nodeID; }
+	Pin InputPin;
+	Pin OutputPin;
 
 public:
 	virtual NodeType GetNodeType() const = 0;

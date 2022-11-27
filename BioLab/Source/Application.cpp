@@ -32,10 +32,16 @@ Application::Application()
 	ImFontConfig icons_config; 
 	icons_config.MergeMode = true; 
 	icons_config.PixelSnapH = true;
-	ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/OpenSans/OpenSans-Regular.ttf", 20.0f);
-	ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 17.0f, &icons_config, icons_ranges);
+	icons_config.OversampleH = 4;
+	icons_config.OversampleV = 4;
 
-	m_BigIcons = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 42, 0, icons_ranges);
+	ImFontConfig icons_config1; 
+	icons_config1.OversampleH = 4;
+	icons_config1.OversampleV = 4;
+	ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/OpenSans/OpenSans-Regular.ttf", 20.0f, &icons_config1);
+	ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 20.0f, &icons_config, icons_ranges);
+
+	m_BigIcons = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 30, 0, icons_ranges);
 
 	m_NodeEditor = std::make_unique<NodeEditor>();
 
@@ -96,7 +102,7 @@ void Application::Run()
 		{
 			BeginDockspace();
 
-			static bool plotWindowOpen = true;
+			static bool plotWindowOpen = false;
 			if (plotWindowOpen)
 			{
 				if (ImGui::Begin(ICON_MD_INSERT_CHART" Plot Window", &plotWindowOpen, ImGuiWindowFlags_NoCollapse))
@@ -117,15 +123,7 @@ void Application::Run()
 				ImGui::End();
 			}
 
-			static bool nodeEditorOpen = true;
-			if (nodeEditorOpen)
-			{
-				if (ImGui::Begin(ICON_MD_INSERT_CHART" Bar Plot", &nodeEditorOpen, ImGuiWindowFlags_NoCollapse))
-				{
-					m_NodeEditor->Render(ImGui::GetContentRegionAvail());
-				}
-				ImGui::End();
-			}
+			m_NodeEditor->Render();
 
 			m_NodeEditor->ShowDebugWindow();
 			ImGui::ShowDemoWindow();
@@ -223,8 +221,14 @@ void Application::BeginDockspace()
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 	ImGui::Begin("LeftBar", 0, windowFlags);
 	ImGui::BeginChild("Child", ImVec2(-1, -1), true);
+	ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
 	ImGui::Text("Mouse Pos: %.2f, %.2f", ImGui::GetMousePos().x, ImGui::GetMousePos().y);
 	ImGui::Separator();
+
+	static bool flow = false;
+	ImGui::Checkbox("Flow", &flow);
+	if (flow)
+		m_NodeEditor->Flow();
 
 	static bool lightColors = false;
 	if (ImGui::Checkbox("Light Colors", &lightColors))

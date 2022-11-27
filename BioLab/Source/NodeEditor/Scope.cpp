@@ -3,10 +3,10 @@
 
 Scope::Scope(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size)
 {
-	SetNodeID(nodeID);
-	SetName(nodeName);
-	SetPosition(position);
-	SetSize(size);
+	this->Name = nodeName;
+	this->ID = nodeID;
+	this->Position = position;
+	this->Size = size;
 }
 Scope::~Scope()
 {
@@ -18,7 +18,5 @@ NodeType Scope::GetNodeType() const
 }
 void Scope::Render()
 {
-	ImGui::Text("Scope Content");
-	ImGui::Text("Scope Content");
-	ImGui::Text("Scope Content");
+	ImGui::Text("ID: %d", this->ID);
 }
