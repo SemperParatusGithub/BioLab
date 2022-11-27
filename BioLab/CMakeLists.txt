@@ -13,6 +13,7 @@ set(HEADERS
     Source/UI/UICore.h
     Source/UI/Window.h
     Source/UI/IconsMaterialDesign.h
+    External/stb_image/stb_image.h
 )
 set(SOURCES
     Source/Main.cpp
@@ -26,6 +27,7 @@ set(SOURCES
     Source/NodeEditor/Source.cpp
     Source/UI/UICore.cpp
     Source/UI/Window.cpp
+    External/stb_image/stb_image.cpp
 )
 
 add_executable(BioLab WIN32 ${SOURCES} ${HEADERS})
@@ -126,4 +128,5 @@ target_include_directories(BioLab PUBLIC
     External/implot
     External/imgui-node-editor
     External/imgui/backends
+    External/stb_image
 )
