@@ -1,27 +1,37 @@
 #include "Application.h"
 #include "Console.h"
 
-#include <Windows.h>
+#include "Core.h"
 
 
-int APIENTRY WinMain(
-    HINSTANCE   hInst,
-    HINSTANCE   hInstPrev, 
-    LPSTR       cmdline, 
-    int         cmdshow)
+namespace BioLab
 {
-#ifdef _DEBUG
-    Console::Create();
-#endif
+    int Main(int argc, char** argv)
+    {
+        Console::Create();
 
-    Application* app = new Application();
-    app->Run();
-    delete app;
+        Application* app = new Application();
+        app->Run();
+        delete app;
 
-#ifdef _DEBUG
-    std::cin.get();
-    Console::Release();
-#endif
+        Console::Release();
 
-    return EXIT_SUCCESS;
+        return 0;
+    }
 }
+
+
+#ifdef BIOLAB_PLATFORM_WINDOWS
+
+INT WINAPI WinMain(
+    HINSTANCE hInstance, 
+    HINSTANCE hPrevInstance,
+    PSTR lpCmdLine, 
+    INT nCmdShow)
+{
+    return BioLab::Main(__argc, __argv);
+}
+
+#else
+    #error "Unsupported Platform"
+#endif

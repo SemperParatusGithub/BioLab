@@ -6,14 +6,13 @@ struct GLFWwindow;
 class UICore
 {
 public:
-	static void Initialize(GLFWwindow* window, const char* glslVersion);
+	static void Initialize();
 	static void Shutdown();
+
+	static bool WindowOpen();
 
 	static void BeginFrame();
 	static void EndFrame();
 
-	static void SetStyle();
-
-	static void SetLightColorTheme();
-	static void SetDarkColorTheme();
+	static void PollEvents();
 };

@@ -42,3 +42,10 @@ typedef struct
 	#define LOG_INFO(...) 
 	#define LOG_ERROR(...)
 #endif
+
+
+#define BIOLAB_WIN32_DIRECTX12
+//#define BIOLAB_GLFW_OPENGL3
+
+#define BIOLAB_PLATFORM_WINDOWS
+#define BIOLAB_DEBUG_CONSOLE

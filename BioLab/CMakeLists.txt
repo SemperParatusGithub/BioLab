@@ -5,14 +5,18 @@ set(HEADERS
     Source/Console.h    
     Source/Core.h
     Source/SerialPort.h
+
     Source/NodeEditor/Comment.h
     Source/NodeEditor/Node.h
     Source/NodeEditor/NodeEditor.h
     Source/NodeEditor/Scope.h
     Source/NodeEditor/Source.h
+
     Source/UI/UICore.h
-    Source/UI/Window.h
     Source/UI/IconsMaterialDesign.h
+    Source/UI/Backends/GLFW_OpenGL.h
+    Source/UI/Backends/Win32_DirectX.h
+
     External/stb_image/stb_image.h
 )
 set(SOURCES
@@ -20,13 +24,17 @@ set(SOURCES
     Source/Application.cpp
     Source/Console.cpp
     Source/SerialPort.cpp
+
     Source/NodeEditor/Comment.cpp
     Source/NodeEditor/Node.cpp
     Source/NodeEditor/NodeEditor.cpp
     Source/NodeEditor/Scope.cpp
     Source/NodeEditor/Source.cpp
+
     Source/UI/UICore.cpp
-    Source/UI/Window.cpp
+    Source/UI/Backends/GLFW_OpenGL.cpp
+    Source/UI/Backends/Win32_DirectX.cpp
+
     External/stb_image/stb_image.cpp
 )
 
@@ -120,6 +128,10 @@ target_link_libraries(BioLab
     implot
     imgui-node-editor
     opengl32.lib
+
+    $<$<PLATFORM_ID:Windows>:d3d12.lib>
+    $<$<PLATFORM_ID:Windows>:d3dcompiler.lib>
+    $<$<PLATFORM_ID:Windows>:dxgi.lib>
 )
 target_include_directories(BioLab PUBLIC 
     Source

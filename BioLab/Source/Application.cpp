@@ -21,12 +21,7 @@ Application::Application()
 {
 	LOG_INFO("creating Application");
 
-	m_Window = std::make_unique<Window>("BioLab", 1280, 720);
-	m_Window->SetMinimumSize(Vector2f{ 1280.0f, 720.0f });
-	//m_Window->Maximize();
-
-	//const auto* vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-	//m_Window->SetPosition(Vector2f{ vidmode->width / 2.0f - 640.0f, vidmode->height / 2.0f - 360.0f });
+	UICore::Initialize();
 
 	static const ImWchar icons_ranges[] = { ICON_MIN_MD, ICON_MAX_16_MD, 0 };
 	ImFontConfig icons_config; 
@@ -43,7 +38,7 @@ Application::Application()
 
 	m_BigIcons = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 30, 0, icons_ranges);
 
-	m_NodeEditor = std::make_unique<NodeEditor>();
+	// m_NodeEditor = std::make_unique<NodeEditor>();
 
 	m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
 	glfwSwapInterval(0);
@@ -66,12 +61,9 @@ void Application::Run()
 	m_LiveValuesCH2.push_back(0.0f);
 	m_LiveValuesCH3.push_back(0.0f);
 
-	while (m_Window->isOpen())
+	while (UICore::WindowOpen())
 	{
-		m_Window->BeginFrame();
-
-		m_Window->Update();
-		m_Window->Clear(Vector4f { 1.0f, 0.0f, 1.0f, 1.0f });
+		UICore::BeginFrame();
 
 		// Retrieve data from ReaderThread
 		{
@@ -97,41 +89,52 @@ void Application::Run()
 			m_LiveValuesCH3.erase(m_LiveValuesCH3.begin(), m_LiveValuesCH3.begin() + 250);
 		}
 
-		bool minimized = m_Window->GetSize().x == 0 && m_Window->GetSize().y == 0;
+		bool minimized = false; // m_Window->GetSize().x == 0 && m_Window->GetSize().y == 0;
 		if (!minimized)
 		{
 			BeginDockspace();
 
-			static bool plotWindowOpen = false;
+			static bool plotWindowOpen = true;
 			if (plotWindowOpen)
 			{
 				if (ImGui::Begin(ICON_MD_INSERT_CHART" Plot Window", &plotWindowOpen, ImGuiWindowFlags_NoCollapse))
 				{
-					ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 					ImPlot::SetNextAxisLimits(ImAxis_Y1, -2000, 6500, ImGuiCond_FirstUseEver);
 					ImPlot::SetNextAxisLimits(ImAxis_X1, (float)m_LiveValuesX.back() - 4.5f, (float)m_LiveValuesX.back() + 0.5f, ImGuiCond_Always);
-					ImPlot::BeginPlot("My Arduino Data", 0, 0, ImGui::GetContentRegionAvail());
+
+					ImPlot::BeginSubplots("", 3, 1, ImGui::GetContentRegionAvail(), ImPlotSubplotFlags_LinkAllX);
+
+					ImPlot::BeginPlot("CH1", 0, 0, ImGui::GetContentRegionAvail());
 					ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-					ImPlot::PlotLine("CH1", m_LiveValuesX.data(), m_LiveValuesCH1.data(), m_LiveValuesX.size());
-					ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-					ImPlot::PlotLine("CH2", m_LiveValuesX.data(), m_LiveValuesCH2.data(), m_LiveValuesX.size());
-					ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-					ImPlot::PlotLine("CH3", m_LiveValuesX.data(), m_LiveValuesCH3.data(), m_LiveValuesX.size());
+					ImPlot::PlotLine("data", m_LiveValuesX.data(), m_LiveValuesCH1.data(), m_LiveValuesX.size());
 					ImPlot::EndPlot();
-					ImGui::PopStyleVar();
+
+					ImPlot::BeginPlot("CH2", 0, 0, ImGui::GetContentRegionAvail());
+					ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
+					ImPlot::PlotLine("data", m_LiveValuesX.data(), m_LiveValuesCH2.data(), m_LiveValuesX.size());
+					ImPlot::EndPlot();
+
+					ImPlot::BeginPlot("CH3", 0, 0, ImGui::GetContentRegionAvail());
+					ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
+					ImPlot::PlotLine("data", m_LiveValuesX.data(), m_LiveValuesCH3.data(), m_LiveValuesX.size());
+					ImPlot::EndPlot();
+
+					ImPlot::EndSubplots();
+
 				}
 				ImGui::End();
 			}
 
-			m_NodeEditor->Render();
-
-			m_NodeEditor->ShowDebugWindow();
-			ImGui::ShowDemoWindow();
+			//m_NodeEditor->Render();
+			//
+			//m_NodeEditor->ShowDebugWindow();
+			//ImGui::ShowDemoWindow();
 
 			EndDockspace();
 		}
 
-		m_Window->EndFrame();
+		UICore::EndFrame();
+		UICore::PollEvents();
 	}
 }
 
@@ -225,24 +228,29 @@ void Application::BeginDockspace()
 	ImGui::Text("Mouse Pos: %.2f, %.2f", ImGui::GetMousePos().x, ImGui::GetMousePos().y);
 	ImGui::Separator();
 
-	static bool flow = false;
-	ImGui::Checkbox("Flow", &flow);
-	if (flow)
-		m_NodeEditor->Flow();
+	//static bool flow = false;
+	//ImGui::Checkbox("Flow", &flow);
+	//if (flow)
+	//	m_NodeEditor->Flow();
 
 	static bool lightColors = false;
-	if (ImGui::Checkbox("Light Colors", &lightColors))
-		lightColors ? UICore::SetLightColorTheme() : UICore::SetDarkColorTheme();
+	// if (ImGui::Checkbox("Light Colors", &lightColors))
+	// 	lightColors ? UICore::SetLightColorTheme() : UICore::SetDarkColorTheme();
 	ImGui::Separator();
 
-	ImGui::Text("SideBar Pos: %.2f, %.2f", sideBarPos.x, sideBarPos.y);
-	ImGui::Text("SideBar Size: %.2f, %.2f", sideBarSize.x, sideBarSize.y);
-	ImGui::Separator();
-	ImGui::Text("MenuBar Pos: %.2f, %.2f", menuBarPos.x, menuBarPos.y);
-	ImGui::Text("MenuBar Size: %.2f, %.2f", menuBarSize.x, menuBarSize.y);
-	ImGui::Separator();
-	ImGui::Text("Dockspace Pos: %.2f, %.2f", dockspacePos.x, dockspacePos.y);
-	ImGui::Text("Dockspace Size: %.2f, %.2f", dockspaceSize.x, dockspaceSize.y);
+	if (ImGui::Button(ICON_MD_START, ImVec2(25.0f, 25.0f)))
+	{
+		m_SerialPort.ClearQueue();
+		char buf = 1;
+		m_SerialPort.Write(&buf, 1);
+	}
+	if (ImGui::Button(ICON_MD_STOP, ImVec2(25.0f, 25.0f)))
+	{
+		m_SerialPort.ClearQueue();
+		char buf = 0;
+		m_SerialPort.Write(&buf, 1);
+	}
+
 
 	ImGui::EndChild();
 	ImGui::End();

@@ -38,7 +38,6 @@ private:
 	std::queue<Vector4f> m_InputQueue;
 	std::mutex m_InputQueueMutex;
 
-	std::unique_ptr<Window> m_Window;
 	SerialPort m_SerialPort;
 	std::thread m_ReaderThread;
 	std::atomic<bool> m_SerialThreadRunning = true;
