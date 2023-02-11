@@ -143,4 +143,17 @@ namespace OpenGL
 	{
         glfwPollEvents();
 	}
+
+    u64 CreateTexture(const void* data, int width, int height)
+    {
+        u32 textureID;
+
+        glGenTextures(1, &textureID);
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+        return static_cast<u64>(textureID);
+    }
 }

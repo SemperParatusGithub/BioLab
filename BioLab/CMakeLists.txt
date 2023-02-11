@@ -17,6 +17,8 @@ set(HEADERS
     Source/UI/Backends/GLFW_OpenGL.h
     Source/UI/Backends/Win32_DirectX.h
 
+    Source/Util/LiveBuffer.h
+
     External/stb_image/stb_image.h
 )
 set(SOURCES
@@ -34,6 +36,8 @@ set(SOURCES
     Source/UI/UICore.cpp
     Source/UI/Backends/GLFW_OpenGL.cpp
     Source/UI/Backends/Win32_DirectX.cpp
+
+    Source/Util/LiveBuffer.cpp
 
     External/stb_image/stb_image.cpp
 )

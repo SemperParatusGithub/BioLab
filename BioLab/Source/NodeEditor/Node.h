@@ -2,48 +2,62 @@
 #include "Core.h"
 
 #include <imgui_node_editor.h>
-
 #include <vector>
 
-
-enum class PinKind
-{
-	Input = 0,
-	Output
-};
-
-enum class NodeType
-{
-	None = 0,
-	Comment,
-	Source,
-	Scope
-};
 
 struct Node;
 
 struct Pin
 {
-	std::string Name;
-	ax::NodeEditor::PinId ID;
-	PinKind Kind;
-	Node* Node;
-	bool Active = false;
+	enum class Type
+	{
+		Input = 0,
+		Output
+	};
+
+	std::string	name;
+	Type type;
+	ax::NodeEditor::PinId id;
+	bool active = false;
+
+	Node* node;
+};
+
+struct Link
+{
+	ax::NodeEditor::LinkId ID;
+
+	ax::NodeEditor::PinId StartPinID;
+	ax::NodeEditor::PinId EndPinID;
+
+	ImColor Color = ImColor(255, 255, 255);
 };
 
 class Node
 {
 public:
-	std::string Name;
-	ax::NodeEditor::NodeId ID;
+	enum class Type
+	{
+		None = 0,
+		Comment,
+		Source,
+		Scope,
+		Filter
+	};
 
-	Vector2f Position;
-	Vector2f Size;
+	std::string	name;
+	Type type = Type::None;
+	ax::NodeEditor::NodeId id;
 
-	Pin InputPin;
-	Pin OutputPin;
+	Vector2f position;
+	Vector2f size;
+
+	Pin	inputPin;
+	Pin	outputPin;
+
+	Node* nextLinkedNode = nullptr;
 
 public:
-	virtual NodeType GetNodeType() const = 0;
-	virtual void Render() = 0;
+	virtual float ProcessSample(float newSample) { return 0.0f; };
+	virtual void Render() {};
 };

@@ -210,6 +210,13 @@ namespace DirectX
         }
     }
 
+    u64 CreateTexture(const void* data, int width, int height)
+    {
+        // TODO
+
+        return 0;
+    }
+
 
     // Helper functions
     bool CreateDeviceD3D(HWND hWnd)

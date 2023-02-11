@@ -1,16 +1,7 @@
 #pragma once
 #include "Node.h"
+#include "Scope.h"
 
-
-struct Link
-{
-	ax::NodeEditor::LinkId ID;
-
-	ax::NodeEditor::PinId StartPinID;
-	ax::NodeEditor::PinId EndPinID;
-
-	ImColor Color = ImColor(255, 255, 255);
-};
 
 struct NodeEditorConfig
 {
@@ -21,6 +12,8 @@ class NodeEditor
 public:
 	NodeEditor(const NodeEditorConfig& config = NodeEditorConfig{});
 	~NodeEditor();
+
+	void AddNewSample(const Vector4f& sample);
 
 	void Render();
 	void ShowDebugWindow();
@@ -35,10 +28,31 @@ public:
 		ax::NodeEditor::SetCurrentEditor(nullptr);
 	}
 
+	Node* CreateNode(const std::string& name, Node::Type type, const Vector2f& position, const Vector2f& size);
+
+
+	Node* FindNodeByID(ax::NodeEditor::NodeId id)
+	{
+		for (Node* node : m_Nodes)
+		{
+			if (node->id == id)
+				return node;
+		}
+
+		return nullptr;
+	}
+
 private:
 	ax::NodeEditor::NodeId GetNextNodeID();
 	ax::NodeEditor::LinkId GetNextLinkID();
 	ax::NodeEditor::PinId GetNextPinID();
+
+	void ProcessNodeWithSample(Node* node, float returnValue)
+	{
+		auto ret = node->ProcessSample(returnValue);
+		if (node->nextLinkedNode != nullptr)
+			ProcessNodeWithSample(node->nextLinkedNode, ret);
+	}
 
 	bool IsPinConnected(ax::NodeEditor::PinId id)
 	{
@@ -53,10 +67,10 @@ private:
 	{
 		for (auto* node : m_Nodes)
 		{
-			if (node->InputPin.ID == id)
-				return node->InputPin;
-			if (node->OutputPin.ID == id)
-				return node->OutputPin;
+			if (node->inputPin.id == id)
+				return node->inputPin;
+			if (node->outputPin.id == id)
+				return node->outputPin;
 		}
 
 		return Pin{};
@@ -71,7 +85,7 @@ private:
 			return false;
 
 		// Cannot link same pin types
-		if (fromPin.Kind == toPin.Kind)
+		if (fromPin.type == toPin.type)
 			return false;
 
 		return true;
@@ -79,10 +93,20 @@ private:
 
 	void HandleLinks();
 
+	void DrawNode(Node* node);
+
+public:
+	std::vector<Scope*> GetScopes() { return m_Scopes; }
+
 
 private:
 	ax::NodeEditor::EditorContext* m_EditorContext;
 	ImFont* m_Font;
+
+	bool m_IsOpen = true;
+
+	bool m_ShowDragDropTooltip = false;
+	ax::NodeEditor::NodeId contextNodeId = 0;
 
 	std::vector<Node*> m_Nodes;		// TODO: Delete me afterwards
 	std::vector<Link> m_Links;
@@ -94,4 +118,10 @@ private:
 	NodeEditorConfig m_Config;
 
 	u32 m_HeaderTextureID;
+
+	Node* m_Channel1Node;
+	Node* m_Channel2Node;
+	Node* m_Channel3Node;
+
+	std::vector<Scope*> m_Scopes;
 };

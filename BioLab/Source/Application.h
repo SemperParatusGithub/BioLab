@@ -8,6 +8,8 @@
 
 #include "NodeEditor/NodeEditor.h"
 
+#include "Util/LiveBuffer.h"
+
 #include <queue>
 #include <thread>
 #include <atomic>
@@ -42,10 +44,11 @@ private:
 	std::thread m_ReaderThread;
 	std::atomic<bool> m_SerialThreadRunning = true;
 
-	std::vector<float> m_LiveValuesX;
-	std::vector<float> m_LiveValuesCH1, m_LiveValuesCH2, m_LiveValuesCH3;
+	LiveBuffer<float> m_LiveValuesX;
+	LiveBuffer<float> m_LiveValuesCH1, m_LiveValuesCH2, m_LiveValuesCH3;
 
 	ImFont* m_BigIcons;
 
 	std::unique_ptr<NodeEditor> m_NodeEditor;
+	int m_ActiveScopeID = 0;
 };

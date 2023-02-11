@@ -38,7 +38,7 @@ Application::Application()
 
 	m_BigIcons = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 30, 0, icons_ranges);
 
-	// m_NodeEditor = std::make_unique<NodeEditor>();
+	m_NodeEditor = std::make_unique<NodeEditor>();
 
 	m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
 	glfwSwapInterval(0);
@@ -56,11 +56,6 @@ void Application::Run()
 {
 	LOG_INFO("running Application");
 
-	m_LiveValuesX.push_back(-0.1f);
-	m_LiveValuesCH1.push_back(0.0f);
-	m_LiveValuesCH2.push_back(0.0f);
-	m_LiveValuesCH3.push_back(0.0f);
-
 	while (UICore::WindowOpen())
 	{
 		UICore::BeginFrame();
@@ -71,22 +66,16 @@ void Application::Run()
 			while (!m_InputQueue.empty())
 			{
 				auto& sample = m_InputQueue.front();
-				m_LiveValuesX.push_back(sample.x);
-				m_LiveValuesCH1.push_back(sample.y);
-				m_LiveValuesCH2.push_back(sample.z);
-				m_LiveValuesCH3.push_back(sample.w);
+				m_LiveValuesX.PushBack(sample.x);
+				m_LiveValuesCH1.PushBack(sample.y);
+				m_LiveValuesCH2.PushBack(sample.z);
+				m_LiveValuesCH3.PushBack(sample.w);
+
+				m_NodeEditor->AddNewSample(sample);
 			
 				m_InputQueue.pop();
 			}
 			m_InputQueueMutex.unlock();
-		}
-
-		if (m_LiveValuesX.size() >= 1000)
-		{
-			m_LiveValuesX.erase(m_LiveValuesX.begin(), m_LiveValuesX.begin() + 250);
-			m_LiveValuesCH1.erase(m_LiveValuesCH1.begin(), m_LiveValuesCH1.begin() + 250);
-			m_LiveValuesCH2.erase(m_LiveValuesCH2.begin(), m_LiveValuesCH2.begin() + 250);
-			m_LiveValuesCH3.erase(m_LiveValuesCH3.begin(), m_LiveValuesCH3.begin() + 250);
 		}
 
 		bool minimized = false; // m_Window->GetSize().x == 0 && m_Window->GetSize().y == 0;
@@ -99,36 +88,88 @@ void Application::Run()
 			{
 				if (ImGui::Begin(ICON_MD_INSERT_CHART" Plot Window", &plotWindowOpen, ImGuiWindowFlags_NoCollapse))
 				{
-					ImPlot::SetNextAxisLimits(ImAxis_Y1, -2000, 6500, ImGuiCond_FirstUseEver);
-					ImPlot::SetNextAxisLimits(ImAxis_X1, (float)m_LiveValuesX.back() - 4.5f, (float)m_LiveValuesX.back() + 0.5f, ImGuiCond_Always);
+					if (m_LiveValuesX.Size() != 0)
+					{
+						ImPlot::SetNextAxisLimits(ImAxis_Y1, -2000, 6500, ImGuiCond_FirstUseEver);
+						float xMin = (float)m_LiveValuesX.Back() - 10.5f;
+						float xMax = (float)m_LiveValuesX.Back() + 0.5f;
+						ImPlot::SetNextAxisLimits(ImAxis_X1, xMin, xMax, ImGuiCond_Always);
 
-					ImPlot::BeginSubplots("", 3, 1, ImGui::GetContentRegionAvail(), ImPlotSubplotFlags_LinkAllX);
+						ImPlot::BeginSubplots("", 3, 1, ImGui::GetContentRegionAvail(), ImPlotSubplotFlags_LinkAllX);
 
-					ImPlot::BeginPlot("CH1", 0, 0, ImGui::GetContentRegionAvail());
-					ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-					ImPlot::PlotLine("data", m_LiveValuesX.data(), m_LiveValuesCH1.data(), m_LiveValuesX.size());
-					ImPlot::EndPlot();
+						ImPlot::BeginPlot("CH1", 0, 0, ImGui::GetContentRegionAvail());
+						ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
+						ImPlot::PlotLine("data", m_LiveValuesX.Data(), m_LiveValuesCH1.Data(), m_LiveValuesX.Size());
+						ImPlot::EndPlot();
 
-					ImPlot::BeginPlot("CH2", 0, 0, ImGui::GetContentRegionAvail());
-					ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-					ImPlot::PlotLine("data", m_LiveValuesX.data(), m_LiveValuesCH2.data(), m_LiveValuesX.size());
-					ImPlot::EndPlot();
+						ImPlot::BeginPlot("CH2", 0, 0, ImGui::GetContentRegionAvail());
+						ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
+						ImPlot::PlotLine("data", m_LiveValuesX.Data(), m_LiveValuesCH2.Data(), m_LiveValuesX.Size());
+						ImPlot::EndPlot();
 
-					ImPlot::BeginPlot("CH3", 0, 0, ImGui::GetContentRegionAvail());
-					ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-					ImPlot::PlotLine("data", m_LiveValuesX.data(), m_LiveValuesCH3.data(), m_LiveValuesX.size());
-					ImPlot::EndPlot();
+						ImPlot::BeginPlot("CH3", 0, 0, ImGui::GetContentRegionAvail());
+						ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
+						ImPlot::PlotLine("data", m_LiveValuesX.Data(), m_LiveValuesCH3.Data(), m_LiveValuesX.Size());
+						ImPlot::EndPlot();
 
-					ImPlot::EndSubplots();
-
+						ImPlot::EndSubplots();
+					}
 				}
 				ImGui::End();
 			}
 
-			//m_NodeEditor->Render();
+			static bool scopeWindowOpen = true;
+			if (scopeWindowOpen)
+			{
+				if (ImGui::Begin(ICON_MD_INSERT_CHART" Scope Window", &scopeWindowOpen, ImGuiWindowFlags_NoCollapse))
+				{
+					if (m_LiveValuesX.Size() != 0)
+					{
+						ImPlot::SetNextAxisLimits(ImAxis_Y1, -2000, 6500, ImGuiCond_FirstUseEver);
+						float xMin = (float)m_LiveValuesX.Back() - 10.5f;
+						float xMax = (float)m_LiveValuesX.Back() + 0.5f;
+						ImPlot::SetNextAxisLimits(ImAxis_X1, xMin, xMax, ImGuiCond_Always);
+					}
+
+					ImPlot::BeginPlot("CH1", 0, 0, ImGui::GetContentRegionAvail());
+					if (ImPlot::BeginDragDropTargetPlot()) 
+					{
+						const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_SCOPE");
+						if (payload)
+						{
+							int id = *(int*)payload->Data;
+							LOG_INFO("NodeID: %d", id);
+
+							m_ActiveScopeID = id;
+						}
+						ImPlot::EndDragDropTarget();
+					}
+
+
+					Node* node = m_NodeEditor->FindNodeByID(ax::NodeEditor::NodeId(m_ActiveScopeID));
+					if (node != nullptr)
+					{
+						Scope* scopeNode = reinterpret_cast<Scope*>(node);
+						auto& samples = scopeNode->Samples;
+
+						if (m_LiveValuesX.Size() != 0)
+						{
+							ImPlot::PlotLine("data", m_LiveValuesX.Data(), scopeNode->Samples.Data(), scopeNode->Samples.Size());
+						}
+					}
+
+
+					ImPlot::EndPlot();
+				}
+				ImGui::End();
+			}
+
+			m_NodeEditor->Render();			
+			// m_NodeEditor->ShowDebugWindow();
 			//
-			//m_NodeEditor->ShowDebugWindow();
-			//ImGui::ShowDemoWindow();
+			// ImGui::ShowDemoWindow();
+			// ImPlot::ShowDemoWindow();
+
 
 			EndDockspace();
 		}
@@ -224,6 +265,8 @@ void Application::BeginDockspace()
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 	ImGui::Begin("LeftBar", 0, windowFlags);
 	ImGui::BeginChild("Child", ImVec2(-1, -1), true);
+
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
 	ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
 	ImGui::Text("Mouse Pos: %.2f, %.2f", ImGui::GetMousePos().x, ImGui::GetMousePos().y);
 	ImGui::Separator();
@@ -251,6 +294,18 @@ void Application::BeginDockspace()
 		m_SerialPort.Write(&buf, 1);
 	}
 
+	ImGui::Text("Hello");
+
+	ImGui::Separator();
+	ImGui::Indent();
+	auto& scopes = m_NodeEditor->GetScopes();
+	for (auto& scope : scopes)
+	{
+		ImGui::Selectable(scope->name.c_str());
+	}
+	ImGui::Unindent();
+
+	ImGui::PopStyleColor();
 
 	ImGui::EndChild();
 	ImGui::End();

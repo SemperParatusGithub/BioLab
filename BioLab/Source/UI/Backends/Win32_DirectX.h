@@ -12,4 +12,6 @@ namespace DirectX
 	void EndFrame();
 
 	void PollEvents();
+
+	u64 CreateTexture(const void* data, int width, int height);
 }

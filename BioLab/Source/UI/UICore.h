@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core.h"
+
 
 struct GLFWwindow;
 
@@ -15,4 +17,6 @@ public:
 	static void EndFrame();
 
 	static void PollEvents();
+
+	static u64 LoadTexture(const std::string& filepath);
 };
