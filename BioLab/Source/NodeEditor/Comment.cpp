@@ -1,5 +1,6 @@
 #include "Comment.h"
 
+#include "UI/IconsMaterialDesign.h"
 #include <imgui.h>
 
 
@@ -19,13 +20,13 @@ Comment::~Comment()
 void Comment::Render()
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.75f);
-	ax::NodeEditor::PushStyleColor(ax::NodeEditor::StyleColor_NodeBg, ImColor(255, 255, 255, 64));
-	ax::NodeEditor::PushStyleColor(ax::NodeEditor::StyleColor_NodeBorder, ImColor(255, 255, 255, 64));
+	ax::NodeEditor::PushStyleColor(ax::NodeEditor::StyleColor_NodeBg, ImColor(90, 90, 90, 64));
+	ax::NodeEditor::PushStyleColor(ax::NodeEditor::StyleColor_NodeBorder, ImColor(70, 70, 70, 64));
 	ax::NodeEditor::BeginNode(this->id);
 
 	ImGui::PushID(this->id.AsPointer());
 	ImGui::Spacing();
-	ImGui::Text("%s (ID: %d)", this->name.c_str(), this->id.Get());
+	ImGui::Text(ICON_MD_COMMENT"  %s", this->name.c_str(), this->id.Get());
 	ax::NodeEditor::Group(ImVec2{ this->size.x, this->size.y });
 	ImGui::PopID();
 

@@ -11,6 +11,8 @@ set(HEADERS
     Source/NodeEditor/NodeEditor.h
     Source/NodeEditor/Scope.h
     Source/NodeEditor/Source.h
+    Source/NodeEditor/Filter.h
+    Source/NodeEditor/ProcessingNodes.h
 
     Source/UI/UICore.h
     Source/UI/IconsMaterialDesign.h
@@ -32,6 +34,8 @@ set(SOURCES
     Source/NodeEditor/NodeEditor.cpp
     Source/NodeEditor/Scope.cpp
     Source/NodeEditor/Source.cpp
+    Source/NodeEditor/Filter.cpp
+    Source/NodeEditor/ProcessingNodes.cpp
 
     Source/UI/UICore.cpp
     Source/UI/Backends/GLFW_OpenGL.cpp

@@ -39,10 +39,15 @@ public:
 	enum class Type
 	{
 		None = 0,
+
 		Comment,
 		Source,
 		Scope,
-		Filter
+
+		Filter,
+		Gain,
+		Offset,
+		Absolute
 	};
 
 	std::string	name;

@@ -16,7 +16,6 @@ Source::~Source()
 
 void Source::Render()
 {
-	ImGui::Text("ID: %d", this->id);
 }
 
 float Source::ProcessSample(float newSample)

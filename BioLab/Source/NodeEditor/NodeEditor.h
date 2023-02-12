@@ -42,6 +42,9 @@ public:
 		return nullptr;
 	}
 
+	void SetupStyle();
+	void SetupColors();
+
 private:
 	ax::NodeEditor::NodeId GetNextNodeID();
 	ax::NodeEditor::LinkId GetNextLinkID();

@@ -50,5 +50,5 @@ private:
 	ImFont* m_BigIcons;
 
 	std::unique_ptr<NodeEditor> m_NodeEditor;
-	int m_ActiveScopeID = 0;
+	std::vector<int> m_ActiveScopes;
 };

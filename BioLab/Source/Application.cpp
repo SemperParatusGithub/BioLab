@@ -22,6 +22,8 @@ Application::Application()
 	LOG_INFO("creating Application");
 
 	UICore::Initialize();
+	UICore::SetupStyle();
+	UICore::SetLightColorTheme();
 
 	static const ImWchar icons_ranges[] = { ICON_MIN_MD, ICON_MAX_16_MD, 0 };
 	ImFontConfig icons_config; 
@@ -39,9 +41,9 @@ Application::Application()
 	m_BigIcons = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 30, 0, icons_ranges);
 
 	m_NodeEditor = std::make_unique<NodeEditor>();
+	m_NodeEditor->SetupStyle();
 
 	m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
-	glfwSwapInterval(0);
 }
 
 Application::~Application()
@@ -140,21 +142,25 @@ void Application::Run()
 							int id = *(int*)payload->Data;
 							LOG_INFO("NodeID: %d", id);
 
-							m_ActiveScopeID = id;
+							if (std::find(m_ActiveScopes.begin(), m_ActiveScopes.end(), id) == m_ActiveScopes.end())
+								m_ActiveScopes.push_back(id);
 						}
 						ImPlot::EndDragDropTarget();
 					}
 
-
-					Node* node = m_NodeEditor->FindNodeByID(ax::NodeEditor::NodeId(m_ActiveScopeID));
-					if (node != nullptr)
+					for (auto& id : m_ActiveScopes)
 					{
-						Scope* scopeNode = reinterpret_cast<Scope*>(node);
-						auto& samples = scopeNode->Samples;
-
-						if (m_LiveValuesX.Size() != 0)
+						Node* node = m_NodeEditor->FindNodeByID(ax::NodeEditor::NodeId(id));
+						if (node != nullptr)
 						{
-							ImPlot::PlotLine("data", m_LiveValuesX.Data(), scopeNode->Samples.Data(), scopeNode->Samples.Size());
+							Scope* scopeNode = reinterpret_cast<Scope*>(node);
+							std::string scopeName = scopeNode->name;
+							auto& samples = scopeNode->Samples;
+
+							if (m_LiveValuesX.Size() != 0)
+							{
+								ImPlot::PlotLine(scopeName.c_str(), m_LiveValuesX.Data(), scopeNode->Samples.Data(), scopeNode->Samples.Size());
+							}
 						}
 					}
 
@@ -167,7 +173,7 @@ void Application::Run()
 			m_NodeEditor->Render();			
 			// m_NodeEditor->ShowDebugWindow();
 			//
-			// ImGui::ShowDemoWindow();
+			ImGui::ShowDemoWindow();
 			// ImPlot::ShowDemoWindow();
 
 

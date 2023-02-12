@@ -4,6 +4,8 @@
 #include "Source.h"
 #include "Filter.h"
 
+#include "ProcessingNodes.h"
+
 #include "UI/UICore.h"
 #include "UI/IconsMaterialDesign.h"
 
@@ -39,11 +41,9 @@ NodeEditor::NodeEditor(const NodeEditorConfig& config)
 	fontConfig.PixelSnapH = false;
 	m_Font = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/Play-Regular.ttf", 15, &fontConfig);
 
-	m_Channel1Node = CreateNode(ICON_MD_POST_ADD"  Channel 1", Node::Type::Source, Vector2f{ 250.0f, 10.0f }, Vector2f{ 200.0f, 80.0f });
-	m_Channel2Node = CreateNode(ICON_MD_POST_ADD"  Channel 2", Node::Type::Source, Vector2f{ 250.0f, 10.0f }, Vector2f{ 200.0f, 80.0f });
-	m_Channel3Node = CreateNode(ICON_MD_POST_ADD"  Channel 3", Node::Type::Source, Vector2f{ 250.0f, 10.0f }, Vector2f{ 200.0f, 80.0f });
-
-	m_Nodes.emplace_back(new Comment(GetNextNodeID(), "Test", Vector2f{ 0.0f, 0.0f }, Vector2f{ 220.0f, 110.0f }));
+	m_Channel1Node = CreateNode(ICON_MD_POST_ADD"  Channel 1", Node::Type::Source, Vector2f{ 250.0f, 10.0f }, Vector2f{ 110.0f, 100.0f });
+	m_Channel2Node = CreateNode(ICON_MD_POST_ADD"  Channel 2", Node::Type::Source, Vector2f{ 250.0f, 10.0f }, Vector2f{ 110.0f, 100.0f });
+	m_Channel3Node = CreateNode(ICON_MD_POST_ADD"  Channel 3", Node::Type::Source, Vector2f{ 250.0f, 10.0f }, Vector2f{ 110.0f, 100.0f });
 }
 NodeEditor::~NodeEditor()
 {
@@ -55,21 +55,9 @@ void NodeEditor::AddNewSample(const Vector4f& sample)
 {
 	Flow();
 
-	// LOG_NEWLINE();
-	// LOG_INFO("--------------------------");
-	// LOG_INFO("Node::Editor::AddNewSample");
-	// LOG_INFO("%.2f: [%.2f, %.2f, %.2f]", sample.x, sample.y, sample.z, sample.w);
-	// LOG_INFO("--------------------------");
-
 	ProcessNodeWithSample(m_Channel1Node, sample.y);
 	ProcessNodeWithSample(m_Channel2Node, sample.z);
 	ProcessNodeWithSample(m_Channel3Node, sample.w);
-
-	// for (auto* node : m_Nodes)
-	// {
-	// 	if (node->type == Node::Type::Source)
-	// 		ProcessNodeWithSample(node, sample.y);
-	// }
 }
 
 void NodeEditor::Render()
@@ -87,8 +75,6 @@ void NodeEditor::Render()
 		ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodePadding, ImVec4(8, 4, 8, 8));
 		ax::NodeEditor::Begin("Node Editor", ImGui::GetContentRegionAvail());
 		{
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
-
 			for (auto* node : m_Nodes)
 			{
 				// comments are handled specially
@@ -100,8 +86,6 @@ void NodeEditor::Render()
 
 				DrawNode(node);
 			}
-
-			ImGui::PopStyleColor();
 
 			HandleLinks();
 		}
@@ -130,14 +114,27 @@ void NodeEditor::Render()
 			if (ImGui::MenuItem("Scope"))
 				CreateNode("Scope", Node::Type::Scope, { 100.0f, 100.0f }, { 200.0f, 100.0f });
 			if (ImGui::MenuItem("Filter"))
-				CreateNode("Filter", Node::Type::Filter, { 500.0f, 500.0f }, { 200.0f, 200.0f });
+				CreateNode("Filter", Node::Type::Filter, { 500.0f, 500.0f }, { 350.0f, 400.0f });	
+			if (ImGui::MenuItem("Gain"))
+				CreateNode("Gain", Node::Type::Gain, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+			if (ImGui::MenuItem("Offset"))
+				CreateNode("Offset", Node::Type::Offset, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+			if (ImGui::MenuItem("Absolute"))
+				CreateNode("Absolute", Node::Type::Absolute, { 500.0f, 500.0f }, { 200.0f, 100.0f });
 
 			ImGui::EndPopup();
 		}
 		if (ImGui::BeginPopup("Node Context"))
 		{
-			if (ImGui::MenuItem("Rename"));
-			if (ImGui::MenuItem("Delete"));
+			Node* node = FindNodeByID(contextNodeId);
+			char buf[16];
+			strcpy(buf, node->name.c_str());
+			buf[15] = '\0';
+			if (ImGui::InputText("##Name", buf, 16))
+				node->name = std::string(buf);
+
+			if (ImGui::Button("Apply"))
+				ImGui::CloseCurrentPopup();
 
 			ImGui::EndPopup();
 		}
@@ -227,16 +224,80 @@ Node* NodeEditor::CreateNode(const std::string& name, Node::Type type, const Vec
 		m_Scopes.push_back((Scope*)node);
 		break;
 	}
-	//case Node::Type::Filter:
-	//{
-	//	node = m_Nodes.emplace_back(new Filter(GetNextNodeID(), name, position, size));
-	//	node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
-	//	node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
-	//	break;
-	//}
+	case Node::Type::Filter:
+	{
+		m_Nodes.emplace_back(new Filter(GetNextNodeID(), name, position, size));
+		node = m_Nodes.back();
+		node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
+		node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
+		break;
+	}
+	case Node::Type::Gain:
+	{
+		m_Nodes.emplace_back(new Gain(GetNextNodeID(), name, position, size));
+		node = m_Nodes.back();
+		node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
+		node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
+		break;
+	}
+	case Node::Type::Offset:
+	{
+		m_Nodes.emplace_back(new Offset(GetNextNodeID(), name, position, size));
+		node = m_Nodes.back();
+		node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
+		node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
+		break;
+	}	
+	case Node::Type::Absolute:
+	{
+		m_Nodes.emplace_back(new Absolute(GetNextNodeID(), name, position, size));
+		node = m_Nodes.back();
+		node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
+		node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
+		break;
+	}
 	}
 
 	return node;
+}
+
+void NodeEditor::SetupStyle()
+{
+	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
+
+	ax::NodeEditor::Style& nodeStyle = ax::NodeEditor::GetStyle();
+	ImVec4* nodeColors = nodeStyle.Colors;
+
+	nodeColors[ax::NodeEditor::StyleColor_Bg] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+	nodeColors[ax::NodeEditor::StyleColor_Grid] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+	nodeColors[ax::NodeEditor::StyleColor_NodeBg] = ImVec4(0.9f, 0.9f, 0.9f, 0.7f);
+	nodeColors[ax::NodeEditor::StyleColor_NodeBorder] = ImVec4(0.0f, 0.0f, 0.0f, 0.8f);
+	// nodeColors[ax::NodeEditor::StyleColor_HovNodeBorder]
+	// nodeColors[ax::NodeEditor::StyleColor_SelNodeBorder]
+	// nodeColors[ax::NodeEditor::StyleColor_NodeSelRect]
+	// nodeColors[ax::NodeEditor::StyleColor_HovLinkBorder]
+	// nodeColors[ax::NodeEditor::StyleColor_SelLinkBorder]
+	// nodeColors[ax::NodeEditor::StyleColor_HighlightLinkBorder]
+	// nodeColors[ax::NodeEditor::StyleColor_LinkSelRect]
+	// nodeColors[ax::NodeEditor::StyleColor_LinkSelRectBorder]
+	// nodeColors[ax::NodeEditor::StyleColor_PinRect]
+	// nodeColors[ax::NodeEditor::StyleColor_PinRectBorder]
+	// nodeColors[ax::NodeEditor::StyleColor_Flow]
+	// nodeColors[ax::NodeEditor::StyleColor_FlowMarker]
+	nodeColors[ax::NodeEditor::StyleColor_GroupBg] = ImVec4(0.95f, 0.95f, 0.95f, 0.7f);
+	nodeColors[ax::NodeEditor::StyleColor_GroupBorder] = ImVec4(0.95f, 0.95f, 0.95f, 0.7f);;
+
+	//nodeStyle.NodeRounding = 0.0f;
+	nodeStyle.PinRounding = 0.0f;
+	nodeStyle.SelectedNodeBorderWidth = 4.5f;
+	nodeStyle.HoveredNodeBorderWidth = 4.5f;
+	nodeStyle.NodeBorderWidth = 2.5f;
+
+	ax::NodeEditor::SetCurrentEditor(nullptr);
+}
+
+void NodeEditor::SetupColors()
+{
 }
 
 ax::NodeEditor::NodeId NodeEditor::GetNextNodeID()
@@ -345,6 +406,7 @@ void NodeEditor::DrawNode(Node* node)
 
 	// Render Header
 	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
 		ImGui::BeginGroup();
 		auto ts = ImGui::CalcTextSize(node->name.c_str());
 		ImGui::Spacing();
@@ -355,6 +417,7 @@ void NodeEditor::DrawNode(Node* node)
 		ImGui::Dummy(ImVec2(node->size.x - ts.x - itemSpacing.x, 0));
 		ImGui::Spacing();
 		ImGui::EndGroup();
+		ImGui::PopStyleColor();
 
 		//std::cout << ts.x << std::endl;
 	}
@@ -370,7 +433,8 @@ void NodeEditor::DrawNode(Node* node)
 	}
 
 
-	ImGui::BeginTable("Layout", 3, ImGuiTableFlags_Borders, ImVec2(node->size.x, 0));
+	//ImGui::BeginTable("Layout", 3, ImGuiTableFlags_Borders, ImVec2(node->size.x, 0));
+	ImGui::BeginTable("Layout", 3, ImGuiTableFlags_None, ImVec2(node->size.x, 0));
 	ImGui::TableSetupColumn("IN", ImGuiTableColumnFlags_WidthFixed, 30);
 	ImGui::TableSetupColumn("CO", ImGuiTableColumnFlags_NoResize);
 	ImGui::TableSetupColumn("OU", ImGuiTableColumnFlags_WidthFixed, 30);

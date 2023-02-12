@@ -19,4 +19,7 @@ public:
 	static void PollEvents();
 
 	static u64 LoadTexture(const std::string& filepath);
+
+	static void SetupStyle();
+	static void SetLightColorTheme();
 };
