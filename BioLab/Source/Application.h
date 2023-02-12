@@ -1,22 +1,17 @@
 #pragma once
 
-#include "UI/Window.h"
-#include "SerialPort.h"
-
-#include "NodeEditor/Node.h"
-#include "NodeEditor/Comment.h"
+#include "Util/SerialPort.h"
+#include "Util/LiveBuffer.h"
 
 #include "NodeEditor/NodeEditor.h"
 
-#include "Util/LiveBuffer.h"
+#include <imgui.h>
+#include <implot.h>
 
 #include <queue>
 #include <thread>
 #include <atomic>
 #include <mutex>
-
-#include <imgui.h>
-
 
 #define ARDUINO_PORT "\\\\.\\COM7"
 

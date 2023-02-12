@@ -1,5 +1,7 @@
 #pragma once
-#include "Node.h"
+#include "Core.h"
+
+#include "NodeEditor/Node.h"
 
 
 class Source : public Node

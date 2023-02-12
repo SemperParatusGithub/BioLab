@@ -1,10 +1,9 @@
 #include "NodeEditor.h"
 
-#include "Comment.h"
-#include "Source.h"
-#include "Filter.h"
-
-#include "ProcessingNodes.h"
+#include "Nodes/Comment.h"
+#include "Nodes/Source.h"
+#include "Nodes/Filter.h"
+#include "Nodes/ProcessingNodes.h"
 
 #include "UI/UICore.h"
 #include "UI/IconsMaterialDesign.h"
@@ -22,7 +21,7 @@ NodeEditor::NodeEditor(const NodeEditorConfig& config)
 	m_Config = config;
 
 	ax::NodeEditor::Config internalConfig;
-	internalConfig.SettingsFile = "Test.json";
+	internalConfig.SettingsFile = nullptr;
 	internalConfig.DragButtonIndex = 0;
 
 	m_HeaderTextureID = UICore::LoadTexture("../../BioLab/Ressources/BlueprintBackground.png");

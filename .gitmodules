@@ -14,3 +14,6 @@
 [submodule "BioLab/External/imgui-node-editor"]
 	path = BioLab/External/imgui-node-editor
 	url = https://github.com/thedmd/imgui-node-editor
+[submodule "BioLab/External/yaml-cpp"]
+	path = BioLab/External/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp

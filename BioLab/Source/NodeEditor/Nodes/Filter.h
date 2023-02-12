@@ -1,7 +1,7 @@
 #pragma once
-
 #include "Core.h"
-#include "Node.h"
+
+#include "NodeEditor/Node.h"
 
 
 class Filter : public Node

@@ -1,6 +1,6 @@
 #pragma once
 #include "Node.h"
-#include "Scope.h"
+#include "Nodes/Scope.h"
 
 
 struct NodeEditorConfig

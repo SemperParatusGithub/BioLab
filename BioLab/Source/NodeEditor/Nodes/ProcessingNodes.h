@@ -1,4 +1,7 @@
-#include "Node.h"
+#pragma once
+#include "Core.h"
+
+#include "NodeEditor/Node.h"
 
 
 class Gain : public Node

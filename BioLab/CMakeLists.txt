@@ -1,47 +1,55 @@
 project(BioLab)
 
 set(HEADERS
-    Source/Application.h
-    Source/Console.h    
+    Source/Application.h  
     Source/Core.h
-    Source/SerialPort.h
 
-    Source/NodeEditor/Comment.h
     Source/NodeEditor/Node.h
     Source/NodeEditor/NodeEditor.h
-    Source/NodeEditor/Scope.h
-    Source/NodeEditor/Source.h
-    Source/NodeEditor/Filter.h
-    Source/NodeEditor/ProcessingNodes.h
+    Source/NodeEditor/Nodes/Comment.h
+    Source/NodeEditor/Nodes/Filter.h
+    Source/NodeEditor/Nodes/ProcessingNodes.h
+    Source/NodeEditor/Nodes/Scope.h
+    Source/NodeEditor/Nodes/Source.h
+    Source/NodeEditor/Scripts/LiveScript.h
 
-    Source/UI/UICore.h
+    Source/SignalProcessing/DigitalFilter.h
+    Source/SignalProcessing/FFT.h
+
     Source/UI/IconsMaterialDesign.h
+    Source/UI/UICore.h
     Source/UI/Backends/GLFW_OpenGL.h
     Source/UI/Backends/Win32_DirectX.h
 
+    Source/Util/Console.h  
     Source/Util/LiveBuffer.h
+    Source/Util/SerialPort.h
 
     External/stb_image/stb_image.h
 )
 set(SOURCES
     Source/Main.cpp
     Source/Application.cpp
-    Source/Console.cpp
-    Source/SerialPort.cpp
 
-    Source/NodeEditor/Comment.cpp
     Source/NodeEditor/Node.cpp
     Source/NodeEditor/NodeEditor.cpp
-    Source/NodeEditor/Scope.cpp
-    Source/NodeEditor/Source.cpp
-    Source/NodeEditor/Filter.cpp
-    Source/NodeEditor/ProcessingNodes.cpp
+    Source/NodeEditor/Nodes/Comment.cpp
+    Source/NodeEditor/Nodes/Filter.cpp
+    Source/NodeEditor/Nodes/ProcessingNodes.cpp
+    Source/NodeEditor/Nodes/Scope.cpp
+    Source/NodeEditor/Nodes/Source.cpp
+    Source/NodeEditor/Scripts/LiveScript.cpp
+
+    Source/SignalProcessing/DigitalFilter.cpp
+    Source/SignalProcessing/FFT.cpp
 
     Source/UI/UICore.cpp
     Source/UI/Backends/GLFW_OpenGL.cpp
     Source/UI/Backends/Win32_DirectX.cpp
 
+    Source/Util/Console.cpp
     Source/Util/LiveBuffer.cpp
+    Source/Util/SerialPort.cpp
 
     External/stb_image/stb_image.cpp
 )
@@ -58,6 +66,10 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(External/glfw)
+
+
+### yaml-cpp
+add_subdirectory(External/yaml-cpp)
 
 ### imgui
 set(IMGUI_SOURCES
@@ -132,6 +144,7 @@ target_link_libraries(imgui-node-editor PRIVATE
 
 target_link_libraries(BioLab
     glfw
+    yaml-cpp
     imgui
     implot
     imgui-node-editor
@@ -149,4 +162,5 @@ target_include_directories(BioLab PUBLIC
     External/imgui-node-editor
     External/imgui/backends
     External/stb_image
+    External/yaml-cpp/include
 )

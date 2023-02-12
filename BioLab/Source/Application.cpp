@@ -1,14 +1,10 @@
 #include "Application.h"
 
-#include "Core.h"
 #include "UI/UICore.h"
-
-#include <imgui.h>
-#include <implot.h>
-
-#include <GLFW/glfw3.h>
-
 #include "UI/IconsMaterialDesign.h"
+
+#include "NodeEditor/Nodes/Scope.h"
+
 
 typedef struct
 {
