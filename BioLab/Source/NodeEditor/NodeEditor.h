@@ -4,6 +4,8 @@
 
 #include "Scripts/LiveScript.h"
 
+#include "Script.h"
+
 
 struct NodeEditorConfig
 {
@@ -31,7 +33,12 @@ public:
 
 	Node* FindNodeByID(ax::NodeEditor::NodeId id)
 	{
-		return m_LiveScript.FindNodeByID(id);
+		return m_ActiveScript.FindNode(id);
+	}
+
+	const Script& GetActiveScript() const
+	{
+		return m_ActiveScript;
 	}
 
 private:
@@ -46,10 +53,6 @@ private:
 
 	void DrawNode(Node* node);
 
-public:
-	std::vector<Scope*> GetScopes();
-
-
 private:
 	ax::NodeEditor::EditorContext* m_EditorContext;
 	ImFont* m_Font;
@@ -59,7 +62,7 @@ private:
 	bool m_ShowDragDropTooltip = false;
 	ax::NodeEditor::NodeId contextNodeId = 0;
 
-	LiveScript m_LiveScript;
+	Script m_ActiveScript;
 
 	NodeEditorConfig m_Config;
 };

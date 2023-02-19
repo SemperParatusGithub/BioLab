@@ -6,22 +6,26 @@ set(HEADERS
 
     Source/NodeEditor/Node.h
     Source/NodeEditor/NodeEditor.h
+    Source/NodeEditor/Script.h
     Source/NodeEditor/Nodes/Comment.h
     Source/NodeEditor/Nodes/Filter.h
     Source/NodeEditor/Nodes/ProcessingNodes.h
     Source/NodeEditor/Nodes/Scope.h
     Source/NodeEditor/Nodes/Source.h
     Source/NodeEditor/Scripts/LiveScript.h
+    Source/NodeEditor/Scripts/PostProcessScript.h
 
     Source/SignalProcessing/DigitalFilter.h
     Source/SignalProcessing/FFT.h
 
     Source/UI/IconsMaterialDesign.h
+    Source/UI/PlotWindow.h
     Source/UI/UICore.h
     Source/UI/Backends/GLFW_OpenGL.h
     Source/UI/Backends/Win32_DirectX.h
 
     Source/Util/Console.h  
+    Source/Util/FileUtils.h
     Source/Util/LiveBuffer.h
     Source/Util/SerialPort.h
 
@@ -33,21 +37,25 @@ set(SOURCES
 
     Source/NodeEditor/Node.cpp
     Source/NodeEditor/NodeEditor.cpp
+    Source/NodeEditor/Script.cpp
     Source/NodeEditor/Nodes/Comment.cpp
     Source/NodeEditor/Nodes/Filter.cpp
     Source/NodeEditor/Nodes/ProcessingNodes.cpp
     Source/NodeEditor/Nodes/Scope.cpp
     Source/NodeEditor/Nodes/Source.cpp
     Source/NodeEditor/Scripts/LiveScript.cpp
+    Source/NodeEditor/Scripts/PostProcessScript.cpp
 
     Source/SignalProcessing/DigitalFilter.cpp
     Source/SignalProcessing/FFT.cpp
 
+    Source/UI/PlotWindow.cpp
     Source/UI/UICore.cpp
     Source/UI/Backends/GLFW_OpenGL.cpp
     Source/UI/Backends/Win32_DirectX.cpp
 
     Source/Util/Console.cpp
+    Source/Util/FileUtils.cpp
     Source/Util/LiveBuffer.cpp
     Source/Util/SerialPort.cpp
 

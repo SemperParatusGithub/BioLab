@@ -13,6 +13,11 @@
 #include <atomic>
 #include <mutex>
 
+#include "Util/FileUtils.h"
+
+#include "UI/PlotWindow.h"
+
+
 #define ARDUINO_PORT "\\\\.\\COM7"
 
 
@@ -33,6 +38,8 @@ private:
 	void EndDockspace();
 
 private:
+	static Application* s_Instance;
+
 	std::queue<Vector4f> m_InputQueue;
 	std::mutex m_InputQueueMutex;
 
@@ -49,4 +56,6 @@ private:
 	std::vector<int> m_ActiveScopes;
 
 	bool m_Reading = false;
+
+	std::vector<Signal> m_LoadedSignals;
 };

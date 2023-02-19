@@ -47,13 +47,19 @@ void NodeEditor::AddNewSample(const Vector4f& sample)
 {
 	Flow();
 
-	ProcessNodeWithSample(m_LiveScript.m_Channel1Node, sample.y);
-	ProcessNodeWithSample(m_LiveScript.m_Channel2Node, sample.z);
-	ProcessNodeWithSample(m_LiveScript.m_Channel3Node, sample.w);
+	if (m_ActiveScript.m_Type == Script::Type::LiveScript)
+	{
+		ProcessNodeWithSample(m_ActiveScript.m_Channel1Node, sample.y);
+		ProcessNodeWithSample(m_ActiveScript.m_Channel2Node, sample.z);
+		ProcessNodeWithSample(m_ActiveScript.m_Channel3Node, sample.w);
+	}
+	else {
+		LOG_INFO("Warning: No script selected");
+	}
 }
 void NodeEditor::ClearScopeBuffers()
 {
-	for (Node* node : m_LiveScript.m_Nodes)
+	for (Node* node : m_ActiveScript.m_Nodes)
 	{
 		if (node->type == Node::Type::Scope)
 		{
@@ -65,6 +71,9 @@ void NodeEditor::ClearScopeBuffers()
 
 void NodeEditor::Render()
 {
+	if (m_ActiveScript.m_Type == Script::Type::None)
+		return;
+
 	bool showDragTooltip = false;
 
 	if (!m_IsOpen)
@@ -78,7 +87,7 @@ void NodeEditor::Render()
 		ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodePadding, ImVec4(8, 4, 8, 8));
 		ax::NodeEditor::Begin("Node Editor", ImGui::GetContentRegionAvail());
 		{
-			for (auto* node : m_LiveScript.m_Nodes)
+			for (auto* node : m_ActiveScript.m_Nodes)
 			{
 				// comments are handled specially
 				if (node->type == Node::Type::Comment)
@@ -113,25 +122,23 @@ void NodeEditor::Render()
 			if (ImGui::BeginPopup("Create New Node"))
 			{
 				if (ImGui::MenuItem("Comment"))
-					m_LiveScript.CreateNode("Comment", Node::Type::Comment, { 100.0f, 100.0f }, { 200.0f, 100.0f });
-				if (ImGui::MenuItem("Source"))
-					m_LiveScript.CreateNode("Source", Node::Type::Source, { 100.0f, 100.0f }, { 200.0f, 100.0f });
+					m_ActiveScript.CreateNode("Comment", Node::Type::Comment, { 100.0f, 100.0f }, { 200.0f, 100.0f });
 				if (ImGui::MenuItem("Scope"))
-					m_LiveScript.CreateNode("Scope", Node::Type::Scope, { 100.0f, 100.0f }, { 200.0f, 100.0f });
+					m_ActiveScript.CreateNode("Scope", Node::Type::Scope, { 100.0f, 100.0f }, { 200.0f, 100.0f });
 				if (ImGui::MenuItem("Filter"))
-					m_LiveScript.CreateNode("Filter", Node::Type::Filter, { 500.0f, 500.0f }, { 350.0f, 400.0f });
+					m_ActiveScript.CreateNode("Filter", Node::Type::Filter, { 500.0f, 500.0f }, { 350.0f, 400.0f });
 				if (ImGui::MenuItem("Gain"))
-					m_LiveScript.CreateNode("Gain", Node::Type::Gain, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+					m_ActiveScript.CreateNode("Gain", Node::Type::Gain, { 500.0f, 500.0f }, { 200.0f, 100.0f });
 				if (ImGui::MenuItem("Offset"))
-					m_LiveScript.CreateNode("Offset", Node::Type::Offset, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+					m_ActiveScript.CreateNode("Offset", Node::Type::Offset, { 500.0f, 500.0f }, { 200.0f, 100.0f });
 				if (ImGui::MenuItem("Absolute"))
-					m_LiveScript.CreateNode("Absolute", Node::Type::Absolute, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+					m_ActiveScript.CreateNode("Absolute", Node::Type::Absolute, { 500.0f, 500.0f }, { 200.0f, 100.0f });
 
 				ImGui::EndPopup();
 			}
 			if (ImGui::BeginPopup("Node Context"))
 			{
-				Node* node = m_LiveScript.FindNodeByID(contextNodeId);
+				Node* node = m_ActiveScript.FindNode(contextNodeId);
 				char buf[32];
 				strcpy(buf, node->name.c_str());
 				ImGui::SetNextItemWidth(200.0f);
@@ -174,7 +181,7 @@ void NodeEditor::ShowDebugWindow()
 	ImGui::Begin("Node Editor Debug");
 	if (ImGui::CollapsingHeader("Nodes", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		for (auto* node : m_LiveScript.m_Nodes)
+		for (auto* node : m_ActiveScript.m_Nodes)
 		{
 			ImGui::Text(node->name.c_str());
 			ImGui::Text("ID: %d", node->id);
@@ -187,17 +194,14 @@ void NodeEditor::ShowDebugWindow()
 	}
 	if (ImGui::CollapsingHeader("Links", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		for (auto& link : m_LiveScript.m_Links)
+		for (auto& link : m_ActiveScript.m_Links)
 		{
 			ImGui::Text("Link %d   from %d to %d", link.ID.AsPointer(), link.StartPinID.AsPointer(), link.EndPinID.AsPointer());
 		}
 	}
 
-	if (ImGui::Button("Clear all nodes"))
-		m_LiveScript.m_Nodes.clear();
-
-	if (ImGui::Button("Clear all links"))
-		m_LiveScript.m_Links.clear();
+	if (ImGui::Button("Clear Script"))
+		m_ActiveScript.Clear();
 
 	if (ImGui::Button("Navigate to content"))
 	{
@@ -213,7 +217,7 @@ void NodeEditor::Flow()
 {
 	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
 
-	for (auto& link : m_LiveScript.m_Links)
+	for (auto& link : m_ActiveScript.m_Links)
 		ax::NodeEditor::Flow(link.ID);
 
 	ax::NodeEditor::SetCurrentEditor(nullptr);
@@ -261,7 +265,7 @@ void NodeEditor::SaveLiveScript(const std::string& filepath)
 {
 	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
 
-	for (Node* node : m_LiveScript.m_Nodes)
+	for (Node* node : m_ActiveScript.m_Nodes)
 	{
 		ImVec2 pos = ax::NodeEditor::GetNodePosition(node->id);
 		// ImVec2 size = ax::NodeEditor::GetNodeSize(node->id);
@@ -272,15 +276,17 @@ void NodeEditor::SaveLiveScript(const std::string& filepath)
 
 	ax::NodeEditor::SetCurrentEditor(nullptr);
 
-	m_LiveScript.Save(filepath);
+	m_ActiveScript.Serialize(filepath);
 }
 void NodeEditor::LoadLiveScript(const std::string& filepath)
 {
-	m_LiveScript.Load(filepath);
+	m_IsOpen = true;
+
+	m_ActiveScript.Deserialize(filepath);
 
 	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
 
-	for (Node* node : m_LiveScript.m_Nodes)
+	for (Node* node : m_ActiveScript.m_Nodes)
 	{
 		ax::NodeEditor::SetNodePosition(node->id, { node->position.x, node->position.y });
 	}
@@ -294,7 +300,7 @@ void NodeEditor::HandleLinks()
 	// taken from examples
 
 	// Submit Links
-	for (auto& link : m_LiveScript.m_Links)
+	for (auto& link : m_ActiveScript.m_Links)
 		ax::NodeEditor::Link(link.ID, link.StartPinID, link.EndPinID, ImVec4(0.26f, 0.59f, 0.98f, 0.75f), 5.0f);
 
 	// Handle creation action, returns true if editor want to create new object (node or link)
@@ -315,14 +321,14 @@ void NodeEditor::HandleLinks()
 			//   * input invalid, output valid - user started to drag new ling from output pin
 			//   * input valid, output valid   - user dragged link over other pin, can be validated
 
-			if (m_LiveScript.CanCreateLink(inputPinId, outputPinId)) // both are valid, let's accept link
+			if (m_ActiveScript.CanCreateLink(inputPinId, outputPinId)) // both are valid, let's accept link
 			{
 				// ax::NodeEditor::AcceptNewItem() return true when user release mouse button.
 				if (ax::NodeEditor::AcceptNewItem())
 				{
 					// Since we accepted new link, lets add one to our list of links.
 
-					m_LiveScript.LinkNodes(inputPinId, outputPinId);
+					m_ActiveScript.LinkPins(inputPinId, outputPinId);
 				}
 
 				// You may choose to reject connection between these nodes
@@ -344,15 +350,15 @@ void NodeEditor::HandleLinks()
 			// If you agree that link can be deleted, accept deletion.
 			if (ax::NodeEditor::AcceptDeletedItem())
 			{
-				for (int i = 0; i < m_LiveScript.m_Links.size(); i++)
+				for (int i = 0; i < m_ActiveScript.m_Links.size(); i++)
 				{
-					auto& link = m_LiveScript.m_Links[i];
+					auto& link = m_ActiveScript.m_Links[i];
 
 					if (link.ID == deletedLinkId)
 					{
-						auto startPin = m_LiveScript.FindPin(link.StartPinID);
+						auto startPin = m_ActiveScript.FindPin(link.StartPinID);
 						startPin.node->nextLinkedNode = nullptr;
-						m_LiveScript.m_Links.erase(m_LiveScript.m_Links.begin() + i);
+						m_ActiveScript.m_Links.erase(m_ActiveScript.m_Links.begin() + i);
 					}
 				}
 			}
@@ -412,7 +418,7 @@ void NodeEditor::DrawNode(Node* node)
 	if (node->inputPin.active)
 	{
 		ax::NodeEditor::BeginPin(node->inputPin.id, ax::NodeEditor::PinKind::Input);
-		if (m_LiveScript.IsPinConnected(node->inputPin.id))
+		if (m_ActiveScript.IsPinConnected(node->inputPin.id))
 			ImGui::Text(ICON_MD_LABEL);
 		else
 			ImGui::Text(ICON_MD_LABEL_OUTLINE);
@@ -444,7 +450,7 @@ void NodeEditor::DrawNode(Node* node)
 	if (node->outputPin.active)
 	{
 		ax::NodeEditor::BeginPin(node->outputPin.id, ax::NodeEditor::PinKind::Output);
-		if (m_LiveScript.IsPinConnected(node->outputPin.id))
+		if (m_ActiveScript.IsPinConnected(node->outputPin.id))
 			ImGui::Text(ICON_MD_LABEL);
 		else
 			ImGui::Text(ICON_MD_LABEL_OUTLINE);
@@ -473,17 +479,4 @@ void NodeEditor::DrawNode(Node* node)
 			ax::NodeEditor::GetStyle().NodeRounding,
 			ImDrawFlags_RoundCornersTop);
 	}
-}
-
-std::vector<Scope*> NodeEditor::GetScopes()
-{
-	std::vector<Scope*> scopes;
-
-	for (Node* node : m_LiveScript.m_Nodes)
-	{
-		if (node->type == Node::Type::Scope)
-			scopes.push_back((Scope*)node);
-	}
-
-	return scopes;
 }

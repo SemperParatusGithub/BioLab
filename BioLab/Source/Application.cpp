@@ -5,6 +5,8 @@
 
 #include "NodeEditor/Nodes/Scope.h"
 
+#include "Util/FileUtils.h"
+
 
 typedef struct
 {
@@ -13,9 +15,14 @@ typedef struct
 } DataPackage;
 
 
+
+Application* Application::s_Instance = nullptr;
+
 Application::Application()
 {
 	LOG_INFO("creating Application");
+
+	s_Instance = this;
 
 	UICore::Initialize();
 	UICore::SetupStyle();
@@ -159,6 +166,12 @@ void Application::Run()
 								ImPlot::PlotLine(scopeName.c_str(), m_LiveValuesX.Data(), scopeNode->Samples.Data(), scopeNode->Samples.Size());
 							}
 						}
+
+						for (auto& signal : m_LoadedSignals)
+						{
+							if(signal.id == id)
+								ImPlot::PlotLine(signal.label.c_str(), signal.xValues.data(), signal.yValues.data(), signal.xValues.size());
+						}
 					}
 
 
@@ -170,8 +183,8 @@ void Application::Run()
 			m_NodeEditor->Render();			
 			m_NodeEditor->ShowDebugWindow();
 			//
-			ImGui::ShowDemoWindow();
-			// ImPlot::ShowDemoWindow();
+			//ImGui::ShowDemoWindow();
+			//ImPlot::ShowDemoWindow();
 
 
 			EndDockspace();
@@ -226,6 +239,7 @@ void Application::ReadSerialPort()
 				const std::lock_guard<std::mutex> lock(m_InputQueueMutex);
 				m_InputQueue.push(sample);
 				// Lock guard is released when going out of scope
+
 			}
 		}
 	}
@@ -239,7 +253,6 @@ void Application::ReadSerialPort()
 	std::cout << "Samples: " << samplesReceived << std::endl;
 	std::cout << "samples/s: " << samplesReceived / duration_s << std::endl;
 }
-
 void Application::SimulateReadSerialPort()
 {
 	std::cout << "Starting Simulate Serial Reader thread" << std::endl;
@@ -253,6 +266,9 @@ void Application::SimulateReadSerialPort()
 	std::size_t samplesReceived = 0;
 
 	int sampleIndex = 0;
+
+	std::ofstream out("Recording.csv");
+
 
 	while (m_SerialThreadRunning)
 	{
@@ -282,7 +298,11 @@ void Application::SimulateReadSerialPort()
 			m_InputQueue.push(sample);
 			// Lock guard is released when going out of scope
 		}
+
+		out << sample.x << ", " << sample.y << std::endl;
 	}
+
+	out.flush();
 
 	auto end = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -325,68 +345,149 @@ void Application::BeginDockspace()
 
 	ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
 	ImGui::Text("Mouse Pos: %.2f, %.2f", ImGui::GetMousePos().x, ImGui::GetMousePos().y);
-	ImGui::Separator();
-
 	ImGui::Text("Size: %d", m_LiveValuesX.Size());
-
-	//static bool flow = false;
-	//ImGui::Checkbox("Flow", &flow);
-	//if (flow)
-	//	m_NodeEditor->Flow();
-
-	static bool lightColors = false;
-	// if (ImGui::Checkbox("Light Colors", &lightColors))
-	// 	lightColors ? UICore::SetLightColorTheme() : UICore::SetDarkColorTheme();
 	ImGui::Separator();
 
-	if (ImGui::Button(ICON_MD_START, ImVec2(25.0f, 25.0f)))
+
+	float width = ImGui::GetContentRegionAvail().x;
+	ImGui::BeginChild("LiveDataChild", ImVec2(width, width), true);
 	{
-		m_LiveValuesX.Clear();
-		m_LiveValuesCH1.Clear();
-		m_LiveValuesCH2.Clear();
-		m_LiveValuesCH3.Clear();
+		ImGui::Text("Live Data");
+		if (ImGui::Button(ICON_MD_START, ImVec2(30.0f, 25.0f)))
+		{
+			m_LiveValuesX.Clear();
+			m_LiveValuesCH1.Clear();
+			m_LiveValuesCH2.Clear();
+			m_LiveValuesCH3.Clear();
 
-		m_NodeEditor->ClearScopeBuffers();
+			m_NodeEditor->ClearScopeBuffers();
 
-		m_SerialPort.ClearQueue();
-		char buf = 1;
-		m_SerialPort.Write(&buf, 1);
+			m_SerialPort.ClearQueue();
+			char buf = 1;
+			m_SerialPort.Write(&buf, 1);
 
-		m_Reading = true;
+			m_Reading = true;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_MD_STOP, ImVec2(30.0f, 25.0f)))
+		{
+			m_SerialPort.ClearQueue();
+			char buf = 0;
+			m_SerialPort.Write(&buf, 1);
+
+			m_Reading = false;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_MD_CLEAR, ImVec2(30.0f, 25.0f)))
+		{
+			m_LiveValuesX.Clear();
+			m_LiveValuesCH1.Clear();
+			m_LiveValuesCH2.Clear();
+			m_LiveValuesCH3.Clear();
+
+			m_NodeEditor->ClearScopeBuffers();
+		}
+
+		static int amplification[3] = { 100, 100, 100 };
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 30.0f);
+		ImGui::SliderInt("CH1", &amplification[0], 0, 255);
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 30.0f);
+		ImGui::SliderInt("CH2", &amplification[1], 0, 255);
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 30.0f);
+		ImGui::SliderInt("CH3", &amplification[2], 0, 255);
+
+		if (ImGui::Button(ICON_MD_SEND, ImVec2(30.0f, 25.0f)))
+		{
+			LOG_INFO("Sending Values: [%d, %d, %d]", amplification[0], amplification[1], amplification[2]);
+
+			char bit = 121;
+			// m_SerialPort.Write uses WriteFile under the hood which is thread safe so there is no problem!!!
+			m_SerialPort.Write((void*)bit, 1);
+			m_SerialPort.Write((void*)amplification, 3);
+		}
+
+		if (ImGui::Button("Save"))
+		{
+			m_NodeEditor->SaveLiveScript(UICore::OpenFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Load"))
+		{
+			m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+		}
 	}
-	if (ImGui::Button(ICON_MD_STOP, ImVec2(25.0f, 25.0f)))
+	ImGui::EndChild();	
+	
+	ImGui::BeginChild("ProcessDataChild", ImVec2(width, width), true);
 	{
-		m_SerialPort.ClearQueue();
-		char buf = 0;
-		m_SerialPort.Write(&buf, 1);
+		ImGui::Text("PostProcess Data");
 
-		m_Reading = false;
+		ImGui::Spacing();
+
+		ImGui::BeginChild("SignalOptions", ImVec2(width * 0.25f, width * 0.5f));
+		ImGui::Button("Save", ImVec2(-1, 0));
+		if (ImGui::Button("Load", ImVec2(-1, 0)))
+		{
+			std::string path = UICore::OpenFileDialog("Data file (*.csv)");
+			auto& signal = FileUtils::LoadCSV(path);
+			m_LoadedSignals.push_back(signal);
+		}
+		ImGui::Button("Clear", ImVec2(-1, 0));
+		ImGui::EndChild();
+		ImGui::SameLine();
+		ImGui::BeginChild("Signals", ImVec2(0.0f, width * 0.5f), true);
+		for (auto& signal : m_LoadedSignals)
+		{
+			bool sel = false;
+			ImPlot::ItemIcon(signal.color);
+			ImGui::SameLine();
+			float availX = ImGui::GetContentRegionAvail().x;
+			ImGui::Selectable(signal.label.c_str(), false, 0, ImVec2(availX - 35.0f, 0.0f));
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+			{
+				int id = signal.id;
+				ImGui::SetDragDropPayload("DND_SCOPE", &id, sizeof(int));
+				ImPlot::ItemIcon(signal.color); ImGui::SameLine();
+				ImGui::TextUnformatted(signal.label.c_str());
+
+				ImGui::EndDragDropSource();
+			}
+
+
+			ImGui::SameLine();
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
+			//ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
+			//ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
+			ImGui::Button(ICON_MD_SAVE, ImVec2(30, 20));
+
+			ImGui::PopStyleColor(1);
+		}
 	}
+	ImGui::EndChild();
 
-	ImGui::Text("Hello");
+	if(m_NodeEditor->GetActiveScript().GetScriptType() == Script::Type::PostProcessScript)
+		ImGui::Text("Active Script: %s", m_NodeEditor->GetActiveScript().GetName().c_str());
+	else
+		ImGui::Text("No active postprocess Script");
 
-	if (ImGui::Button("Save NodeScript"))
+	ImGui::SameLine();
+	ImGui::Button(ICON_MD_FILE_OPEN, ImVec2(30.0f, 25.0f));
+
+	if (ImGui::Button("Save"))
 	{
-		m_NodeEditor->SaveLiveScript(UICore::SaveFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+		m_NodeEditor->SaveLiveScript(UICore::OpenFileDialog("Post Process(*.postprocess)\0*.postprocess\0"));
 	}
-	if (ImGui::Button("Load NodeScript"))
+	ImGui::SameLine();
+	if (ImGui::Button("Load"))
 	{
-		m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+		m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Post Process(*.postprocess)\0*.postprocess\0"));
 	}
 
-	ImGui::Separator();
-	ImGui::Indent();
-	auto& scopes = m_NodeEditor->GetScopes();
-	for (auto& scope : scopes)
-	{
-		ImGui::Selectable(scope->name.c_str());
-	}
-	ImGui::Unindent();
-
-	ImGui::PopStyleColor();
+	ImGui::EndChild();
 
 	ImGui::EndChild();
 	ImGui::End();
+	ImGui::PopStyleColor();
 	ImGui::PopStyleVar(3);
 
 	// MenuBar
