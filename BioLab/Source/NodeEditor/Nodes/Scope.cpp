@@ -27,3 +27,8 @@ float Scope::ProcessSample(float newSample)
 
 	return newSample;
 }
+
+void Scope::ClearBuffer()
+{
+	this->Samples.Clear();
+}

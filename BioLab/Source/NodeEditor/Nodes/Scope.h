@@ -14,6 +14,8 @@ public:
 	virtual void Render() override;
 	virtual float ProcessSample(float newSample) override;
 
+	void ClearBuffer();
+
 public:
 	LiveBuffer<float> Samples;
 };

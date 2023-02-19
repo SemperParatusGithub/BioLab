@@ -13,5 +13,8 @@ namespace DirectX
 
 	void PollEvents();
 
+	std::string OpenFileDialog(const char* filter);
+	std::string SaveFileDialog(const char* filter);
+
 	u64 CreateTexture(const void* data, int width, int height);
 }

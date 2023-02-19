@@ -69,6 +69,9 @@ add_subdirectory(External/glfw)
 
 
 ### yaml-cpp
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 add_subdirectory(External/yaml-cpp)
 
 ### imgui

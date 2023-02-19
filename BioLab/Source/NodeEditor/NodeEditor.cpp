@@ -24,8 +24,6 @@ NodeEditor::NodeEditor(const NodeEditorConfig& config)
 	internalConfig.SettingsFile = nullptr;
 	internalConfig.DragButtonIndex = 0;
 
-	m_HeaderTextureID = UICore::LoadTexture("../../BioLab/Ressources/BlueprintBackground.png");
-
 	m_EditorContext = ax::NodeEditor::CreateEditor(&internalConfig);
 
 	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
@@ -40,23 +38,29 @@ NodeEditor::NodeEditor(const NodeEditorConfig& config)
 	fontConfig.PixelSnapH = false;
 	m_Font = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/Play-Regular.ttf", 15, &fontConfig);
 
-	m_Channel1Node = CreateNode(ICON_MD_POST_ADD"  Channel 1", Node::Type::Source, Vector2f{ 250.0f, 10.0f }, Vector2f{ 110.0f, 100.0f });
-	m_Channel2Node = CreateNode(ICON_MD_POST_ADD"  Channel 2", Node::Type::Source, Vector2f{ 250.0f, 10.0f }, Vector2f{ 110.0f, 100.0f });
-	m_Channel3Node = CreateNode(ICON_MD_POST_ADD"  Channel 3", Node::Type::Source, Vector2f{ 250.0f, 10.0f }, Vector2f{ 110.0f, 100.0f });
 }
 NodeEditor::~NodeEditor()
 {
-	for (auto* node : m_Nodes)
-		delete node;
 }
 
 void NodeEditor::AddNewSample(const Vector4f& sample)
 {
 	Flow();
 
-	ProcessNodeWithSample(m_Channel1Node, sample.y);
-	ProcessNodeWithSample(m_Channel2Node, sample.z);
-	ProcessNodeWithSample(m_Channel3Node, sample.w);
+	ProcessNodeWithSample(m_LiveScript.m_Channel1Node, sample.y);
+	ProcessNodeWithSample(m_LiveScript.m_Channel2Node, sample.z);
+	ProcessNodeWithSample(m_LiveScript.m_Channel3Node, sample.w);
+}
+void NodeEditor::ClearScopeBuffers()
+{
+	for (Node* node : m_LiveScript.m_Nodes)
+	{
+		if (node->type == Node::Type::Scope)
+		{
+			Scope* scopeNode = reinterpret_cast<Scope*>(node);
+			scopeNode->ClearBuffer();
+		}
+	}
 }
 
 void NodeEditor::Render()
@@ -74,7 +78,7 @@ void NodeEditor::Render()
 		ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodePadding, ImVec4(8, 4, 8, 8));
 		ax::NodeEditor::Begin("Node Editor", ImGui::GetContentRegionAvail());
 		{
-			for (auto* node : m_Nodes)
+			for (auto* node : m_LiveScript.m_Nodes)
 			{
 				// comments are handled specially
 				if (node->type == Node::Type::Comment)
@@ -89,64 +93,72 @@ void NodeEditor::Render()
 			HandleLinks();
 		}
 
-
-		ax::NodeEditor::Suspend();
-
-		ImVec2 openPopupPosition;
-
-		if (ax::NodeEditor::ShowBackgroundContextMenu())
-			ImGui::OpenPopup("Create New Node");
-		else if (ax::NodeEditor::ShowNodeContextMenu(&contextNodeId))
-			ImGui::OpenPopup("Node Context");
-		else 
-			ImGui::CloseCurrentPopup();
-		
-
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
-
-		if (ImGui::BeginPopup("Create New Node"))
+		// Render Popups
 		{
-			if (ImGui::MenuItem("Comment"))
-				CreateNode("Comment", Node::Type::Comment, { 100.0f, 100.0f }, { 200.0f, 100.0f });
-			if (ImGui::MenuItem("Source"))
-				CreateNode("Source", Node::Type::Source, { 100.0f, 100.0f }, { 200.0f, 100.0f });
-			if (ImGui::MenuItem("Scope"))
-				CreateNode("Scope", Node::Type::Scope, { 100.0f, 100.0f }, { 200.0f, 100.0f });
-			if (ImGui::MenuItem("Filter"))
-				CreateNode("Filter", Node::Type::Filter, { 500.0f, 500.0f }, { 350.0f, 400.0f });	
-			if (ImGui::MenuItem("Gain"))
-				CreateNode("Gain", Node::Type::Gain, { 500.0f, 500.0f }, { 200.0f, 100.0f });
-			if (ImGui::MenuItem("Offset"))
-				CreateNode("Offset", Node::Type::Offset, { 500.0f, 500.0f }, { 200.0f, 100.0f });
-			if (ImGui::MenuItem("Absolute"))
-				CreateNode("Absolute", Node::Type::Absolute, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+			ax::NodeEditor::Suspend();
 
-			ImGui::EndPopup();
-		}
-		if (ImGui::BeginPopup("Node Context"))
-		{
-			Node* node = FindNodeByID(contextNodeId);
-			char buf[16];
-			strcpy(buf, node->name.c_str());
-			buf[15] = '\0';
-			if (ImGui::InputText("##Name", buf, 16))
-				node->name = std::string(buf);
+			ImVec2 openPopupPosition = ImGui::GetMousePos();
 
-			if (ImGui::Button("Apply"))
+
+			if (ax::NodeEditor::ShowBackgroundContextMenu())
+				ImGui::OpenPopup("Create New Node");
+			else if (ax::NodeEditor::ShowNodeContextMenu(&contextNodeId))
+				ImGui::OpenPopup("Node Context");
+			else
 				ImGui::CloseCurrentPopup();
 
-			ImGui::EndPopup();
-		}
-		if (m_ShowDragDropTooltip)
-		{
-			ImGui::SetNextWindowPos(ImGui::GetMousePos());
-			ImGui::BeginTooltip();
-			ImGui::Text("Drag to plot window");
-			ImGui::EndTooltip();
-		}
 
-		ImGui::PopStyleVar();
-		ax::NodeEditor::Resume();
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+
+			if (ImGui::BeginPopup("Create New Node"))
+			{
+				if (ImGui::MenuItem("Comment"))
+					m_LiveScript.CreateNode("Comment", Node::Type::Comment, { 100.0f, 100.0f }, { 200.0f, 100.0f });
+				if (ImGui::MenuItem("Source"))
+					m_LiveScript.CreateNode("Source", Node::Type::Source, { 100.0f, 100.0f }, { 200.0f, 100.0f });
+				if (ImGui::MenuItem("Scope"))
+					m_LiveScript.CreateNode("Scope", Node::Type::Scope, { 100.0f, 100.0f }, { 200.0f, 100.0f });
+				if (ImGui::MenuItem("Filter"))
+					m_LiveScript.CreateNode("Filter", Node::Type::Filter, { 500.0f, 500.0f }, { 350.0f, 400.0f });
+				if (ImGui::MenuItem("Gain"))
+					m_LiveScript.CreateNode("Gain", Node::Type::Gain, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+				if (ImGui::MenuItem("Offset"))
+					m_LiveScript.CreateNode("Offset", Node::Type::Offset, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+				if (ImGui::MenuItem("Absolute"))
+					m_LiveScript.CreateNode("Absolute", Node::Type::Absolute, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+
+				ImGui::EndPopup();
+			}
+			if (ImGui::BeginPopup("Node Context"))
+			{
+				Node* node = m_LiveScript.FindNodeByID(contextNodeId);
+				char buf[32];
+				strcpy(buf, node->name.c_str());
+				ImGui::SetNextItemWidth(200.0f);
+
+				ImGuiInputTextFlags flags = ImGuiInputTextFlags_AutoSelectAll;
+				if (node->name == "Channel 1" || node->name == "Channel 2" || node->name == "Channel 3")
+					flags |= ImGuiInputTextFlags_ReadOnly;
+
+				if (ImGui::InputText("##Name", buf, 32, flags))
+					node->name = std::string(buf);
+
+				if (ImGui::IsKeyPressed(ImGuiKey_Enter))
+					ImGui::CloseCurrentPopup();
+
+				ImGui::EndPopup();
+			}
+			if (m_ShowDragDropTooltip)
+			{
+				ImGui::SetNextWindowPos(ImGui::GetMousePos());
+				ImGui::BeginTooltip();
+				ImGui::Text("Drag to plot window");
+				ImGui::EndTooltip();
+			}
+
+			ImGui::PopStyleVar();
+			ax::NodeEditor::Resume();
+		}
 
 		ax::NodeEditor::End();
 		ax::NodeEditor::PopStyleVar();
@@ -157,13 +169,12 @@ void NodeEditor::Render()
 	ImGui::End();
 	ImGui::PopStyleVar();
 }
-
 void NodeEditor::ShowDebugWindow()
 {
 	ImGui::Begin("Node Editor Debug");
 	if (ImGui::CollapsingHeader("Nodes", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		for (auto* node : m_Nodes)
+		for (auto* node : m_LiveScript.m_Nodes)
 		{
 			ImGui::Text(node->name.c_str());
 			ImGui::Text("ID: %d", node->id);
@@ -176,14 +187,17 @@ void NodeEditor::ShowDebugWindow()
 	}
 	if (ImGui::CollapsingHeader("Links", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		for (auto& link : m_Links)
+		for (auto& link : m_LiveScript.m_Links)
 		{
 			ImGui::Text("Link %d   from %d to %d", link.ID.AsPointer(), link.StartPinID.AsPointer(), link.EndPinID.AsPointer());
 		}
 	}
 
 	if (ImGui::Button("Clear all nodes"))
-		m_Nodes.clear();
+		m_LiveScript.m_Nodes.clear();
+
+	if (ImGui::Button("Clear all links"))
+		m_LiveScript.m_Links.clear();
 
 	if (ImGui::Button("Navigate to content"))
 	{
@@ -195,69 +209,14 @@ void NodeEditor::ShowDebugWindow()
 	ImGui::End();
 }
 
-Node* NodeEditor::CreateNode(const std::string& name, Node::Type type, const Vector2f& position, const Vector2f& size)
+void NodeEditor::Flow()
 {
-	Node* node = nullptr;
+	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
 
-	switch (type)
-	{
-	case Node::Type::Comment:
-	{
-		m_Nodes.emplace_back(new Comment(GetNextNodeID(), name, position, size));
-		node = m_Nodes.back();
-		break;
-	}
-	case Node::Type::Source:
-	{
-		m_Nodes.emplace_back(new Source(GetNextNodeID(), name, position, size));
-		node = m_Nodes.back();
-		node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
-		break;
-	}
-	case Node::Type::Scope:
-	{
-		m_Nodes.emplace_back(new Scope(GetNextNodeID(), name, position, size));
-		node = m_Nodes.back();
-		node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
+	for (auto& link : m_LiveScript.m_Links)
+		ax::NodeEditor::Flow(link.ID);
 
-		m_Scopes.push_back((Scope*)node);
-		break;
-	}
-	case Node::Type::Filter:
-	{
-		m_Nodes.emplace_back(new Filter(GetNextNodeID(), name, position, size));
-		node = m_Nodes.back();
-		node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
-		node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
-		break;
-	}
-	case Node::Type::Gain:
-	{
-		m_Nodes.emplace_back(new Gain(GetNextNodeID(), name, position, size));
-		node = m_Nodes.back();
-		node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
-		node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
-		break;
-	}
-	case Node::Type::Offset:
-	{
-		m_Nodes.emplace_back(new Offset(GetNextNodeID(), name, position, size));
-		node = m_Nodes.back();
-		node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
-		node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
-		break;
-	}	
-	case Node::Type::Absolute:
-	{
-		m_Nodes.emplace_back(new Absolute(GetNextNodeID(), name, position, size));
-		node = m_Nodes.back();
-		node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
-		node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
-		break;
-	}
-	}
-
-	return node;
+	ax::NodeEditor::SetCurrentEditor(nullptr);
 }
 
 void NodeEditor::SetupStyle()
@@ -294,25 +253,40 @@ void NodeEditor::SetupStyle()
 
 	ax::NodeEditor::SetCurrentEditor(nullptr);
 }
-
 void NodeEditor::SetupColors()
 {
 }
 
-ax::NodeEditor::NodeId NodeEditor::GetNextNodeID()
+void NodeEditor::SaveLiveScript(const std::string& filepath)
 {
-	m_CurrentNodeID++;
-	return ax::NodeEditor::NodeId(m_CurrentNodeID);
+	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
+
+	for (Node* node : m_LiveScript.m_Nodes)
+	{
+		ImVec2 pos = ax::NodeEditor::GetNodePosition(node->id);
+		// ImVec2 size = ax::NodeEditor::GetNodeSize(node->id);
+
+		node->position = Vector2f{ pos.x, pos.y };
+		// node->size = Vector2f{ size.x, size.y };
+	}
+
+	ax::NodeEditor::SetCurrentEditor(nullptr);
+
+	m_LiveScript.Save(filepath);
 }
-ax::NodeEditor::LinkId NodeEditor::GetNextLinkID()
+void NodeEditor::LoadLiveScript(const std::string& filepath)
 {
-	m_CurrentLinkID++;
-	return ax::NodeEditor::LinkId(m_CurrentLinkID);
-}
-ax::NodeEditor::PinId NodeEditor::GetNextPinID()
-{
-	m_CurrentPinID++;
-	return ax::NodeEditor::PinId(m_CurrentPinID);
+	m_LiveScript.Load(filepath);
+
+	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
+
+	for (Node* node : m_LiveScript.m_Nodes)
+	{
+		ax::NodeEditor::SetNodePosition(node->id, { node->position.x, node->position.y });
+	}
+
+	ax::NodeEditor::NavigateToContent();
+	ax::NodeEditor::SetCurrentEditor(nullptr);
 }
 
 void NodeEditor::HandleLinks()
@@ -320,7 +294,7 @@ void NodeEditor::HandleLinks()
 	// taken from examples
 
 	// Submit Links
-	for (auto& link : m_Links)
+	for (auto& link : m_LiveScript.m_Links)
 		ax::NodeEditor::Link(link.ID, link.StartPinID, link.EndPinID, ImVec4(0.26f, 0.59f, 0.98f, 0.75f), 5.0f);
 
 	// Handle creation action, returns true if editor want to create new object (node or link)
@@ -341,25 +315,14 @@ void NodeEditor::HandleLinks()
 			//   * input invalid, output valid - user started to drag new ling from output pin
 			//   * input valid, output valid   - user dragged link over other pin, can be validated
 
-			if (CanCreateLink(inputPinId, outputPinId)) // both are valid, let's accept link
+			if (m_LiveScript.CanCreateLink(inputPinId, outputPinId)) // both are valid, let's accept link
 			{
 				// ax::NodeEditor::AcceptNewItem() return true when user release mouse button.
 				if (ax::NodeEditor::AcceptNewItem())
 				{
 					// Since we accepted new link, lets add one to our list of links.
-					m_Links.push_back({ GetNextLinkID(), inputPinId, outputPinId });
 
-					auto& pin1 = FindPin(inputPinId);
-					auto& pin2 = FindPin(outputPinId);
-
-					if (pin1.type == Pin::Type::Output)
-						pin1.node->nextLinkedNode = pin2.node;
-
-					if (pin2.type == Pin::Type::Output)
-						pin2.node->nextLinkedNode = pin1.node;
-
-					// Draw new link.
-					ax::NodeEditor::Link(m_Links.back().ID, m_Links.back().StartPinID, m_Links.back().EndPinID);
+					m_LiveScript.LinkNodes(inputPinId, outputPinId);
 				}
 
 				// You may choose to reject connection between these nodes
@@ -381,14 +344,17 @@ void NodeEditor::HandleLinks()
 			// If you agree that link can be deleted, accept deletion.
 			if (ax::NodeEditor::AcceptDeletedItem())
 			{
-				m_Links.erase(std::remove_if(m_Links.begin(), m_Links.end(),
-					[=](Link& element) -> bool
+				for (int i = 0; i < m_LiveScript.m_Links.size(); i++)
+				{
+					auto& link = m_LiveScript.m_Links[i];
+
+					if (link.ID == deletedLinkId)
 					{
-						if (element.ID == deletedLinkId)
-							return true;
-						else return false;
-					}),
-					m_Links.end());
+						auto startPin = m_LiveScript.FindPin(link.StartPinID);
+						startPin.node->nextLinkedNode = nullptr;
+						m_LiveScript.m_Links.erase(m_LiveScript.m_Links.begin() + i);
+					}
+				}
 			}
 
 			// You may reject link deletion by calling:
@@ -446,7 +412,7 @@ void NodeEditor::DrawNode(Node* node)
 	if (node->inputPin.active)
 	{
 		ax::NodeEditor::BeginPin(node->inputPin.id, ax::NodeEditor::PinKind::Input);
-		if (IsPinConnected(node->inputPin.id))
+		if (m_LiveScript.IsPinConnected(node->inputPin.id))
 			ImGui::Text(ICON_MD_LABEL);
 		else
 			ImGui::Text(ICON_MD_LABEL_OUTLINE);
@@ -478,7 +444,7 @@ void NodeEditor::DrawNode(Node* node)
 	if (node->outputPin.active)
 	{
 		ax::NodeEditor::BeginPin(node->outputPin.id, ax::NodeEditor::PinKind::Output);
-		if (IsPinConnected(node->outputPin.id))
+		if (m_LiveScript.IsPinConnected(node->outputPin.id))
 			ImGui::Text(ICON_MD_LABEL);
 		else
 			ImGui::Text(ICON_MD_LABEL_OUTLINE);
@@ -500,23 +466,24 @@ void NodeEditor::DrawNode(Node* node)
 		ImU32 HeaderColor = IM_COL32(66, 150, 250, 200);
 		auto headerColor = IM_COL32(0, 0, 0, alpha) | (HeaderColor & IM_COL32(255, 255, 255, 0));
 
-
-
-#if defined(BIOLAB_GLFW_OPENGL3)
-		dl->AddImageRounded(
-			(ImTextureID)m_HeaderTextureID,
-			currentHeaderMin - ImVec2(8 - halfBorderWidth, 4 - halfBorderWidth),
-			currentHeaderMax + ImVec2(8 - halfBorderWidth, 0),
-			ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f),
-			headerColor, ax::NodeEditor::GetStyle().NodeRounding,
-			ImDrawFlags_RoundCornersTop);
-#else
 		dl->AddRectFilled(
 			currentHeaderMin - ImVec2(8 - halfBorderWidth, 4 - halfBorderWidth),
 			currentHeaderMax + ImVec2(8 - halfBorderWidth, 0),
 			headerColor,
 			ax::NodeEditor::GetStyle().NodeRounding,
 			ImDrawFlags_RoundCornersTop);
-#endif
 	}
+}
+
+std::vector<Scope*> NodeEditor::GetScopes()
+{
+	std::vector<Scope*> scopes;
+
+	for (Node* node : m_LiveScript.m_Nodes)
+	{
+		if (node->type == Node::Type::Scope)
+			scopes.push_back((Scope*)node);
+	}
+
+	return scopes;
 }

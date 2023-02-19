@@ -32,6 +32,11 @@ public:
 		return data.size();
 	}
 
+	void Clear()
+	{
+		data.clear();
+	}
+
 	T* Data()
 	{
 		return data.data();

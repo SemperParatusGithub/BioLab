@@ -39,7 +39,8 @@ Application::Application()
 	m_NodeEditor = std::make_unique<NodeEditor>();
 	m_NodeEditor->SetupStyle();
 
-	m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
+	m_ReaderThread = std::thread(&Application::SimulateReadSerialPort, this);
+	//m_ReaderThread = std::thread(&Application::SimulateReadSerialPort, this);
 }
 
 Application::~Application()
@@ -167,7 +168,7 @@ void Application::Run()
 			}
 
 			m_NodeEditor->Render();			
-			// m_NodeEditor->ShowDebugWindow();
+			m_NodeEditor->ShowDebugWindow();
 			//
 			ImGui::ShowDemoWindow();
 			// ImPlot::ShowDemoWindow();
@@ -239,6 +240,60 @@ void Application::ReadSerialPort()
 	std::cout << "samples/s: " << samplesReceived / duration_s << std::endl;
 }
 
+void Application::SimulateReadSerialPort()
+{
+	std::cout << "Starting Simulate Serial Reader thread" << std::endl;
+
+	std::this_thread::sleep_for(std::chrono::seconds(2));
+	m_SerialPort.ClearQueue();
+
+	std::cout << "Ready to receive data" << std::endl;
+
+	auto start = std::chrono::high_resolution_clock::now();
+	std::size_t samplesReceived = 0;
+
+	int sampleIndex = 0;
+
+	while (m_SerialThreadRunning)
+	{
+		if (!m_Reading)
+			continue;
+
+		::LARGE_INTEGER ft;
+		int us = 10000;
+		ft.QuadPart = -static_cast<int_fast64_t>(us * 10);  // '-' using relative time
+
+		::HANDLE timer = ::CreateWaitableTimer(NULL, TRUE, NULL);
+		::SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
+		::WaitForSingleObject(timer, INFINITE);
+		::CloseHandle(timer);
+
+		Vector4f sample = {
+			sampleIndex / 2000.0f,
+			2.0f * std::sin(5.0f * sampleIndex / 2000.0f),
+			1.5f * std::cos(7.5f * sampleIndex / 2000.0f),
+			std::sin(15.0f * sampleIndex / 2000.0f),
+		};
+
+		sampleIndex += 20;
+
+		{
+			const std::lock_guard<std::mutex> lock(m_InputQueueMutex);
+			m_InputQueue.push(sample);
+			// Lock guard is released when going out of scope
+		}
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+	float duration_s = duration / 1e6f;
+
+	std::cout << "Stopping Serial Reader thread" << std::endl;
+	std::cout << "Duration: " << duration_s << std::endl;
+	std::cout << "Samples: " << samplesReceived << std::endl;
+	std::cout << "samples/s: " << samplesReceived / duration_s << std::endl;
+}
+
 void Application::BeginDockspace()
 {
 	ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
@@ -268,10 +323,11 @@ void Application::BeginDockspace()
 	ImGui::Begin("LeftBar", 0, windowFlags);
 	ImGui::BeginChild("Child", ImVec2(-1, -1), true);
 
-	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
 	ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
 	ImGui::Text("Mouse Pos: %.2f, %.2f", ImGui::GetMousePos().x, ImGui::GetMousePos().y);
 	ImGui::Separator();
+
+	ImGui::Text("Size: %d", m_LiveValuesX.Size());
 
 	//static bool flow = false;
 	//ImGui::Checkbox("Flow", &flow);
@@ -285,18 +341,38 @@ void Application::BeginDockspace()
 
 	if (ImGui::Button(ICON_MD_START, ImVec2(25.0f, 25.0f)))
 	{
+		m_LiveValuesX.Clear();
+		m_LiveValuesCH1.Clear();
+		m_LiveValuesCH2.Clear();
+		m_LiveValuesCH3.Clear();
+
+		m_NodeEditor->ClearScopeBuffers();
+
 		m_SerialPort.ClearQueue();
 		char buf = 1;
 		m_SerialPort.Write(&buf, 1);
+
+		m_Reading = true;
 	}
 	if (ImGui::Button(ICON_MD_STOP, ImVec2(25.0f, 25.0f)))
 	{
 		m_SerialPort.ClearQueue();
 		char buf = 0;
 		m_SerialPort.Write(&buf, 1);
+
+		m_Reading = false;
 	}
 
 	ImGui::Text("Hello");
+
+	if (ImGui::Button("Save NodeScript"))
+	{
+		m_NodeEditor->SaveLiveScript(UICore::SaveFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+	}
+	if (ImGui::Button("Load NodeScript"))
+	{
+		m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+	}
 
 	ImGui::Separator();
 	ImGui::Indent();
@@ -312,7 +388,6 @@ void Application::BeginDockspace()
 	ImGui::EndChild();
 	ImGui::End();
 	ImGui::PopStyleVar(3);
-	ImGui::PopStyleColor();
 
 	// MenuBar
 	ImGui::SetNextWindowPos(menuBarPos);

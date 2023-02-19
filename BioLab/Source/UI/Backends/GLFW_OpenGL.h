@@ -13,5 +13,8 @@ namespace OpenGL
 
 	void PollEvents();
 
+	std::string OpenFileDialog(const char* filter) { return std::string(); }
+	std::string SaveFileDialog(const char* filter) { return std::string(); }
+
 	u64 CreateTexture(const void* data, int width, int height);
 }

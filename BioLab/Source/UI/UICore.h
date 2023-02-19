@@ -20,6 +20,9 @@ public:
 
 	static u64 LoadTexture(const std::string& filepath);
 
+	static std::string OpenFileDialog(const char* filter);
+	static std::string SaveFileDialog(const char* filter);
+
 	static void SetupStyle();
 	static void SetLightColorTheme();
 };

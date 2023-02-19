@@ -55,7 +55,7 @@ void UICore::PollEvents()
 
 u64 UICore::LoadTexture(const std::string& filepath)
 {
-	LOG_INFO("Loading texture: %s", filepath);
+	LOG_INFO("Loading texture: %s", filepath.c_str());
 
 	int width = 0, height = 0, channels = 0;
 
@@ -66,8 +66,18 @@ u64 UICore::LoadTexture(const std::string& filepath)
 		return textureHandle;
 	}
 
-	LOG_ERROR("Failed to load texture: %s", filepath);
+	LOG_ERROR("Failed to load texture: %s", filepath.c_str());
 	return 0;
+}
+
+std::string UICore::OpenFileDialog(const char* filter)
+{
+	return Backend::OpenFileDialog(filter);
+}
+
+std::string UICore::SaveFileDialog(const char* filter)
+{
+	return Backend::SaveFileDialog(filter);
 }
 
 void UICore::SetupStyle()

@@ -7,6 +7,7 @@
 #include <implot.h>
 
 #include <Windows.h>
+#include <commdlg.h>
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -208,6 +209,57 @@ namespace DirectX
             if (msg.message == WM_QUIT)
                 g_windowOpen = false;
         }
+    }
+
+    std::string OpenFileDialog(const char* filter)
+    {
+        OPENFILENAMEA ofn;				// common dialog box structure
+        CHAR szFile[260] = { 0 };       // if using TCHAR macros
+
+        // Initialize OPENFILENAME
+        ZeroMemory(&ofn, sizeof(OPENFILENAME));
+        ofn.lStructSize = sizeof(OPENFILENAME);
+        ofn.hwndOwner = g_hwnd;
+        ofn.lpstrFile = szFile;
+        ofn.nMaxFile = sizeof(szFile);
+        ofn.lpstrFilter = filter;
+        ofn.nFilterIndex = 1;
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+        if (GetOpenFileNameA(&ofn) == TRUE)
+        {
+            return ofn.lpstrFile;
+        }
+
+        return std::string("");
+    }
+
+    std::string SaveFileDialog(const char* filter)
+    {
+        OPENFILENAMEA ofn;
+        CHAR szFile[260] = { 0 };
+        CHAR currentDir[256] = { 0 };
+
+        ZeroMemory(&ofn, sizeof(OPENFILENAME));
+        ofn.lStructSize = sizeof(OPENFILENAME);
+        ofn.hwndOwner = g_hwnd;
+        ofn.lpstrFile = szFile;
+        ofn.nMaxFile = sizeof(szFile);
+        if (GetCurrentDirectoryA(256, currentDir))
+            ofn.lpstrInitialDir = currentDir;
+        ofn.lpstrFilter = filter;
+        ofn.nFilterIndex = 1;
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+
+        // Sets the default extension by extracting it from the filter
+        ofn.lpstrDefExt = strchr(filter, '\0') + 1;
+
+        if (GetSaveFileNameA(&ofn) == TRUE)
+        {
+            return ofn.lpstrFile;
+        }
+
+        return std::string("");
     }
 
     u64 CreateTexture(const void* data, int width, int height)

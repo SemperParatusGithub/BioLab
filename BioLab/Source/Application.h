@@ -27,6 +27,7 @@ public:
 
 private:
 	void ReadSerialPort();
+	void SimulateReadSerialPort();
 
 	void BeginDockspace();
 	void EndDockspace();
@@ -46,4 +47,6 @@ private:
 
 	std::unique_ptr<NodeEditor> m_NodeEditor;
 	std::vector<int> m_ActiveScopes;
+
+	bool m_Reading = false;
 };
