@@ -27,6 +27,17 @@ public:
 	Application();
 	~Application();
 
+	static Application* Instance() { return s_Instance; }
+	Signal GetSignalByID(int signalID)
+	{
+		for (auto& signal : m_LoadedSignals)
+		{
+			if (signal.id == signalID)
+				return signal;
+		}
+		return Signal();
+	}
+
 public:
 	void Run();
 
@@ -38,6 +49,8 @@ private:
 	void EndDockspace();
 
 private:
+	friend class NodeEditor;
+
 	static Application* s_Instance;
 
 	std::queue<Vector4f> m_InputQueue;
@@ -50,10 +63,10 @@ private:
 	LiveBuffer<float> m_LiveValuesX;
 	LiveBuffer<float> m_LiveValuesCH1, m_LiveValuesCH2, m_LiveValuesCH3;
 
-	ImFont* m_BigIcons;
-
 	std::unique_ptr<NodeEditor> m_NodeEditor;
+
 	std::vector<int> m_ActiveScopes;
+	std::vector<int> m_ActiveSignals;
 
 	bool m_Reading = false;
 

@@ -4,9 +4,12 @@
 #include "Nodes/Source.h"
 #include "Nodes/Filter.h"
 #include "Nodes/ProcessingNodes.h"
+#include "Nodes/PostProcessingNodes.h"
 
 #include "UI/UICore.h"
 #include "UI/IconsMaterialDesign.h"
+
+#include "Application.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui_internal.h>
@@ -22,8 +25,6 @@ NodeEditor::NodeEditor(const NodeEditorConfig& config)
 
 	ax::NodeEditor::Config internalConfig;
 	internalConfig.SettingsFile = nullptr;
-	internalConfig.DragButtonIndex = 0;
-
 	m_EditorContext = ax::NodeEditor::CreateEditor(&internalConfig);
 
 	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
@@ -31,13 +32,6 @@ NodeEditor::NodeEditor(const NodeEditorConfig& config)
 	ax::NodeEditor::GetStyle().FlowDuration = 1.0f;
 	ax::NodeEditor::GetStyle().LinkStrength = 350.0f;
 	ax::NodeEditor::SetCurrentEditor(nullptr);
-
-	ImFontConfig fontConfig;
-	fontConfig.OversampleH = 4;
-	fontConfig.OversampleV = 4;
-	fontConfig.PixelSnapH = false;
-	m_Font = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/Play-Regular.ttf", 15, &fontConfig);
-
 }
 NodeEditor::~NodeEditor()
 {
@@ -54,7 +48,7 @@ void NodeEditor::AddNewSample(const Vector4f& sample)
 		ProcessNodeWithSample(m_ActiveScript.m_Channel3Node, sample.w);
 	}
 	else {
-		LOG_INFO("Warning: No script selected");
+		LOG_INFO("Warning: No LiveScript selected");
 	}
 }
 void NodeEditor::ClearScopeBuffers()
@@ -69,10 +63,40 @@ void NodeEditor::ClearScopeBuffers()
 	}
 }
 
+void NodeEditor::ExecutePostProcessScript()
+{
+	if (m_ActiveScript.m_Type != Script::Type::PostProcessScript)
+	{
+		LOG_ERROR("Failed to execute Script: m_ActiveScript.m_Type != Script::Type::PostProcessScript");
+		return;
+	}
+
+	Flow();
+
+	Node* inputSignalNode = m_ActiveScript.m_InputSignalNode;
+	Node* outputSignalNode = m_ActiveScript.m_OutputSignalNode;
+
+	int inputSignalID = ((InputSignal*)inputSignalNode)->GetSignalID();
+
+	LOG_INFO("Executing PostProcessScript");
+	LOG_INFO("\tInputSignalID: %d", inputSignalID);
+
+	// 1. retrieve Signal from Application
+	Application* instance = Application::Instance();
+	Signal inputSignal = instance->GetSignalByID(inputSignalID);
+
+	// 2. Process nodes recursively
+	ProcessNodeWithSignal(m_ActiveScript.m_InputSignalNode, inputSignal);
+	OutputSignal outputSignal = (*(OutputSignal*)outputSignalNode);
+
+	// 3. emplace output to Application
+	instance->m_LoadedSignals.push_back(outputSignal.GetSignal());
+}
+
 void NodeEditor::Render()
 {
-	if (m_ActiveScript.m_Type == Script::Type::None)
-		return;
+	//if (m_ActiveScript.m_Type == Script::Type::None)
+	//	return;
 
 	bool showDragTooltip = false;
 
@@ -83,7 +107,7 @@ void NodeEditor::Render()
 	if (ImGui::Begin(ICON_MD_INSERT_CHART" Node Editor", &m_IsOpen, ImGuiWindowFlags_NoCollapse))
 	{
 		ax::NodeEditor::SetCurrentEditor(m_EditorContext);
-		ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+		ImGui::PushFont(UICore::GetFont(Font::Default));
 		ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodePadding, ImVec4(8, 4, 8, 8));
 		ax::NodeEditor::Begin("Node Editor", ImGui::GetContentRegionAvail());
 		{
@@ -106,15 +130,18 @@ void NodeEditor::Render()
 		{
 			ax::NodeEditor::Suspend();
 
-			ImVec2 openPopupPosition = ImGui::GetMousePos();
-
-
-			if (ax::NodeEditor::ShowBackgroundContextMenu())
+			if (ax::NodeEditor::ShowBackgroundContextMenu()) 
+			{
 				ImGui::OpenPopup("Create New Node");
+			}
 			else if (ax::NodeEditor::ShowNodeContextMenu(&contextNodeId))
-				ImGui::OpenPopup("Node Context");
-			else
+			{
+				if(CanNodeBeModified(contextNodeId))
+					ImGui::OpenPopup("Node Context");
+			}
+			else {
 				ImGui::CloseCurrentPopup();
+			}
 
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
@@ -179,8 +206,11 @@ void NodeEditor::Render()
 void NodeEditor::ShowDebugWindow()
 {
 	ImGui::Begin("Node Editor Debug");
+	ImGui::Text("m_CurrentNodeID: %d", m_ActiveScript.m_CurrentNodeID);
+	ImGui::Text("m_CurrentLinkID: %d", m_ActiveScript.m_CurrentLinkID);
+	ImGui::Text("m_CurrentPinID: %d", m_ActiveScript.m_CurrentPinID);
+
 	if (ImGui::CollapsingHeader("Nodes", ImGuiTreeNodeFlags_DefaultOpen))
-	{
 		for (auto* node : m_ActiveScript.m_Nodes)
 		{
 			ImGui::Text(node->name.c_str());
@@ -191,24 +221,16 @@ void NodeEditor::ShowDebugWindow()
 			ImGui::Separator();
 			ImGui::Spacing();
 		}
-	}
+
 	if (ImGui::CollapsingHeader("Links", ImGuiTreeNodeFlags_DefaultOpen))
-	{
 		for (auto& link : m_ActiveScript.m_Links)
-		{
 			ImGui::Text("Link %d   from %d to %d", link.ID.AsPointer(), link.StartPinID.AsPointer(), link.EndPinID.AsPointer());
-		}
-	}
 
 	if (ImGui::Button("Clear Script"))
 		m_ActiveScript.Clear();
 
 	if (ImGui::Button("Navigate to content"))
-	{
-		ax::NodeEditor::SetCurrentEditor(m_EditorContext);
-		ax::NodeEditor::NavigateToContent();
-		ax::NodeEditor::SetCurrentEditor(nullptr);
-	}
+		NavigateToContent();
 
 	ImGui::End();
 }
@@ -276,21 +298,44 @@ void NodeEditor::SaveLiveScript(const std::string& filepath)
 
 	ax::NodeEditor::SetCurrentEditor(nullptr);
 
-	m_ActiveScript.Serialize(filepath);
+	m_ScriptSerializer.SerializeScript(m_ActiveScript, filepath);
 }
 void NodeEditor::LoadLiveScript(const std::string& filepath)
 {
 	m_IsOpen = true;
 
-	m_ActiveScript.Deserialize(filepath);
+	m_ActiveScript = m_ScriptSerializer.DeserializeScript(filepath);
+	UpdateNodePositions();
+	NavigateToContent();
+}
 
+void NodeEditor::CreateLiveScript()
+{
+	m_ActiveScript = m_ScriptSerializer.CreateNewLiveScript();
+	m_IsOpen = true;
+	UpdateNodePositions();
+	NavigateToContent();
+}
+void NodeEditor::CreatePostProcessScript()
+{
+	m_ActiveScript = m_ScriptSerializer.CreateNewPostProcessScript();
+	m_IsOpen = true;
+	UpdateNodePositions();
+}
+
+void NodeEditor::UpdateNodePositions()
+{
 	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
 
 	for (Node* node : m_ActiveScript.m_Nodes)
-	{
 		ax::NodeEditor::SetNodePosition(node->id, { node->position.x, node->position.y });
-	}
 
+	ax::NodeEditor::NavigateToContent();
+	ax::NodeEditor::SetCurrentEditor(nullptr);
+}
+void NodeEditor::NavigateToContent()
+{
+	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
 	ax::NodeEditor::NavigateToContent();
 	ax::NodeEditor::SetCurrentEditor(nullptr);
 }
@@ -350,21 +395,20 @@ void NodeEditor::HandleLinks()
 			// If you agree that link can be deleted, accept deletion.
 			if (ax::NodeEditor::AcceptDeletedItem())
 			{
-				for (int i = 0; i < m_ActiveScript.m_Links.size(); i++)
-				{
-					auto& link = m_ActiveScript.m_Links[i];
-
-					if (link.ID == deletedLinkId)
-					{
-						auto startPin = m_ActiveScript.FindPin(link.StartPinID);
-						startPin.node->nextLinkedNode = nullptr;
-						m_ActiveScript.m_Links.erase(m_ActiveScript.m_Links.begin() + i);
-					}
-				}
+				m_ActiveScript.DeleteLink(deletedLinkId);
 			}
+		}
 
-			// You may reject link deletion by calling:
-			// ed::RejectDeletedItem();
+		ax::NodeEditor::NodeId deletedNodeId = 0;
+		while (ax::NodeEditor::QueryDeletedNode(&deletedNodeId))
+		{
+			if (!CanNodeBeModified(deletedNodeId))
+				continue;
+
+			if (ax::NodeEditor::AcceptDeletedItem())
+			{
+				m_ActiveScript.DeleteNode(deletedNodeId);
+			}
 		}
 	}
 	ax::NodeEditor::EndDelete(); // Wrap up deletion action
@@ -413,7 +457,7 @@ void NodeEditor::DrawNode(Node* node)
 
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
-	ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+	ImGui::PushFont(UICore::GetFont(Font::BigIcons));
 	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.26f, 0.59f, 0.98f, 1.0f));
 	if (node->inputPin.active)
 	{
@@ -445,7 +489,7 @@ void NodeEditor::DrawNode(Node* node)
 	}
 
 	ImGui::TableNextColumn();
-	ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+	ImGui::PushFont(UICore::GetFont(Font::BigIcons));
 	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.26f, 0.59f, 0.98f, 1.0f));
 	if (node->outputPin.active)
 	{

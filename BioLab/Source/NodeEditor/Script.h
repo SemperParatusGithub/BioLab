@@ -10,6 +10,7 @@
 
 
 class NodeEditor;
+class ScriptSerializer;
 
 class Script
 {
@@ -34,6 +35,46 @@ public:
 	void Serialize(const std::string& filepath);
 	void Deserialize(const std::string& filepath);
 
+	void DeleteLink(ax::NodeEditor::LinkId id)
+	{
+		for (int i = 0; i < m_Links.size(); i++)
+		{
+			auto& link = m_Links[i];
+
+			if (link.ID == id)
+			{
+				auto startPin = FindPin(link.StartPinID);
+				startPin.node->nextLinkedNode = nullptr;
+				m_Links.erase(m_Links.begin() + i);
+			}
+		}
+	}
+	void DeleteNode(ax::NodeEditor::NodeId id)
+	{
+		for (int i = 0; i < m_Nodes.size(); i++)
+		{
+			auto& node = m_Nodes[i];
+
+			if (node->id == id)
+			{
+				if (node->inputPin.active)
+				{
+					auto& link = FindLink(node->inputPin.id);
+					DeleteLink(link.ID);
+				}
+				if (node->outputPin.active)
+				{
+					auto& link = FindLink(node->outputPin.id);
+					DeleteLink(link.ID);
+				}
+
+				delete m_Nodes[i];
+				m_Nodes.erase(m_Nodes.begin() + i);
+			}
+		}
+	}
+
+private:
 	void SerializeNode(Node* node, YAML::Emitter& out);
 	void SerializeLink(Link link, YAML::Emitter& out);
 
@@ -44,6 +85,13 @@ private:
 	Node* FindNode(const std::string& name);
 	Node* FindNode(ax::NodeEditor::NodeId id);
 	Pin FindPin(ax::NodeEditor::PinId id);
+	Link FindLink(ax::NodeEditor::PinId id)
+	{
+		for (auto& link : m_Links)
+			if (link.StartPinID == id || link.EndPinID == id)
+				return link;
+		return Link();
+	}
 
 	bool IsPinConnected(ax::NodeEditor::PinId id);
 	bool CanCreateLink(ax::NodeEditor::PinId from, ax::NodeEditor::PinId to);
@@ -57,6 +105,7 @@ private:
 
 private:
 	friend class NodeEditor;
+	friend class ScriptSerializer;
 
 	Type m_Type = Type::None;
 	std::string m_Name = "Unknown";
@@ -71,4 +120,7 @@ private:
 	Node* m_Channel1Node = nullptr;
 	Node* m_Channel2Node = nullptr;
 	Node* m_Channel3Node = nullptr;
+
+	Node* m_InputSignalNode = nullptr;
+	Node* m_OutputSignalNode = nullptr;
 };

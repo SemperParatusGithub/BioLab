@@ -25,23 +25,9 @@ Application::Application()
 	s_Instance = this;
 
 	UICore::Initialize();
+	UICore::LoadFonts();
 	UICore::SetupStyle();
 	UICore::SetLightColorTheme();
-
-	static const ImWchar icons_ranges[] = { ICON_MIN_MD, ICON_MAX_16_MD, 0 };
-	ImFontConfig icons_config; 
-	icons_config.MergeMode = true; 
-	icons_config.PixelSnapH = true;
-	icons_config.OversampleH = 4;
-	icons_config.OversampleV = 4;
-
-	ImFontConfig icons_config1; 
-	icons_config1.OversampleH = 4;
-	icons_config1.OversampleV = 4;
-	ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/OpenSans/OpenSans-Regular.ttf", 20.0f, &icons_config1);
-	ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 20.0f, &icons_config, icons_ranges);
-
-	m_BigIcons = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 30, 0, icons_ranges);
 
 	m_NodeEditor = std::make_unique<NodeEditor>();
 	m_NodeEditor->SetupStyle();
@@ -140,14 +126,24 @@ void Application::Run()
 					ImPlot::BeginPlot("CH1", 0, 0, ImGui::GetContentRegionAvail());
 					if (ImPlot::BeginDragDropTargetPlot()) 
 					{
-						const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_SCOPE");
-						if (payload)
+						const ImGuiPayload* scopePayload = ImGui::AcceptDragDropPayload("DND_SCOPE");
+						if (scopePayload)
 						{
-							int id = *(int*)payload->Data;
-							LOG_INFO("NodeID: %d", id);
+							int id = *(int*)scopePayload->Data;
+							LOG_INFO("dropped Scope: %d", id);
 
 							if (std::find(m_ActiveScopes.begin(), m_ActiveScopes.end(), id) == m_ActiveScopes.end())
 								m_ActiveScopes.push_back(id);
+						}
+
+						const ImGuiPayload* signalPayload = ImGui::AcceptDragDropPayload("DND_SIGNAL");
+						if (signalPayload)
+						{
+							int id = *(int*)signalPayload->Data;
+							LOG_INFO("dropped Signal: %d", id);
+
+							if (std::find(m_ActiveSignals.begin(), m_ActiveSignals.end(), id) == m_ActiveSignals.end())
+								m_ActiveSignals.push_back(id);
 						}
 						ImPlot::EndDragDropTarget();
 					}
@@ -162,15 +158,18 @@ void Application::Run()
 							auto& samples = scopeNode->Samples;
 
 							if (m_LiveValuesX.Size() != 0)
-							{
 								ImPlot::PlotLine(scopeName.c_str(), m_LiveValuesX.Data(), scopeNode->Samples.Data(), scopeNode->Samples.Size());
-							}
 						}
-
+					}
+					for (auto& id : m_ActiveSignals)
+					{
 						for (auto& signal : m_LoadedSignals)
 						{
-							if(signal.id == id)
+							if (signal.id == id)
+							{
+								ImPlot::SetNextLineStyle(signal.color);
 								ImPlot::PlotLine(signal.label.c_str(), signal.xValues.data(), signal.yValues.data(), signal.xValues.size());
+							}
 						}
 					}
 
@@ -183,8 +182,8 @@ void Application::Run()
 			m_NodeEditor->Render();			
 			m_NodeEditor->ShowDebugWindow();
 			//
-			//ImGui::ShowDemoWindow();
-			//ImPlot::ShowDemoWindow();
+			// ImGui::ShowDemoWindow();
+			// ImPlot::ShowDemoWindow();
 
 
 			EndDockspace();
@@ -352,7 +351,9 @@ void Application::BeginDockspace()
 	float width = ImGui::GetContentRegionAvail().x;
 	ImGui::BeginChild("LiveDataChild", ImVec2(width, width), true);
 	{
+		ImGui::PushFont(UICore::GetFont(Font::OpenSansHeading));
 		ImGui::Text("Live Data");
+		ImGui::PopFont();
 		if (ImGui::Button(ICON_MD_START, ImVec2(30.0f, 25.0f)))
 		{
 			m_LiveValuesX.Clear();
@@ -400,39 +401,51 @@ void Application::BeginDockspace()
 		{
 			LOG_INFO("Sending Values: [%d, %d, %d]", amplification[0], amplification[1], amplification[2]);
 
-			char bit = 121;
+			unsigned char MAG_BYTE = 121;
+			unsigned char writeData[4] = { MAG_BYTE, amplification[0], amplification[1] , amplification[2] };
+
 			// m_SerialPort.Write uses WriteFile under the hood which is thread safe so there is no problem!!!
-			m_SerialPort.Write((void*)bit, 1);
-			m_SerialPort.Write((void*)amplification, 3);
+			m_SerialPort.Write((void*)writeData, 4);
 		}
 
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
 		if (ImGui::Button("Save"))
 		{
-			m_NodeEditor->SaveLiveScript(UICore::OpenFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+			m_NodeEditor->SaveLiveScript(UICore::SaveFileDialog("Live Script(*.livescript)\0*.livescript\0"));
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Load"))
 		{
 			m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+		}		
+		ImGui::SameLine();
+		if (ImGui::Button("Create"))
+		{
+			m_NodeEditor->CreateLiveScript();
 		}
+		ImGui::PopStyleColor();
 	}
 	ImGui::EndChild();	
 	
 	ImGui::BeginChild("ProcessDataChild", ImVec2(width, width), true);
 	{
-		ImGui::Text("PostProcess Data");
+		ImGui::PushFont(UICore::GetFont(Font::OpenSansHeading));
+		ImGui::Text("Data Analysis");
+		ImGui::PopFont();
 
 		ImGui::Spacing();
 
 		ImGui::BeginChild("SignalOptions", ImVec2(width * 0.25f, width * 0.5f));
-		ImGui::Button("Save", ImVec2(-1, 0));
 		if (ImGui::Button("Load", ImVec2(-1, 0)))
 		{
 			std::string path = UICore::OpenFileDialog("Data file (*.csv)");
 			auto& signal = FileUtils::LoadCSV(path);
 			m_LoadedSignals.push_back(signal);
 		}
-		ImGui::Button("Clear", ImVec2(-1, 0));
+		if (ImGui::Button("Clear", ImVec2(-1, 0)))
+		{
+			m_LoadedSignals.clear();
+		}
 		ImGui::EndChild();
 		ImGui::SameLine();
 		ImGui::BeginChild("Signals", ImVec2(0.0f, width * 0.5f), true);
@@ -446,7 +459,7 @@ void Application::BeginDockspace()
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 			{
 				int id = signal.id;
-				ImGui::SetDragDropPayload("DND_SCOPE", &id, sizeof(int));
+				ImGui::SetDragDropPayload("DND_SIGNAL", &id, sizeof(int));
 				ImPlot::ItemIcon(signal.color); ImGui::SameLine();
 				ImGui::TextUnformatted(signal.label.c_str());
 
@@ -456,11 +469,16 @@ void Application::BeginDockspace()
 
 			ImGui::SameLine();
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
-			//ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
-			//ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
-			ImGui::Button(ICON_MD_SAVE, ImVec2(30, 20));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
+			std::string buttonName = ICON_MD_SAVE"##" + std::to_string(signal.id);
+			if (ImGui::Button(buttonName.c_str(), ImVec2(30, 20)))
+			{
+				std::string filepath = UICore::SaveFileDialog("Data file (*.csv)\0.csv");
+				FileUtils::SaveCSV(signal, filepath);
+			}
 
-			ImGui::PopStyleColor(1);
+			ImGui::PopStyleColor(3);
 		}
 	}
 	ImGui::EndChild();
@@ -475,12 +493,28 @@ void Application::BeginDockspace()
 
 	if (ImGui::Button("Save"))
 	{
-		m_NodeEditor->SaveLiveScript(UICore::OpenFileDialog("Post Process(*.postprocess)\0*.postprocess\0"));
+		m_NodeEditor->SaveLiveScript(UICore::SaveFileDialog("Post Process(*.postprocess)\0*.postprocess\0"));
 	}
 	ImGui::SameLine();
 	if (ImGui::Button("Load"))
 	{
 		m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Post Process(*.postprocess)\0*.postprocess\0"));
+	}	
+	ImGui::SameLine();
+	if (ImGui::Button("Create"))
+	{
+		m_NodeEditor->CreatePostProcessScript();
+	}
+	if (ImGui::Button("Execute"))
+	{
+		m_LiveValuesX.Clear();
+		m_LiveValuesCH1.Clear();
+		m_LiveValuesCH2.Clear();
+		m_LiveValuesCH3.Clear();
+
+		m_NodeEditor->ClearScopeBuffers();
+
+		m_NodeEditor->ExecutePostProcessScript();
 	}
 
 	ImGui::EndChild();

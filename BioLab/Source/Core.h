@@ -3,11 +3,31 @@
 #include <iostream>
 #include <stdio.h>
 
+#include <vector>
+#include <imgui.h>
+
 
 using u8 = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
+
+
+struct Signal
+{
+	int id = -1;
+	std::string label = "Unnamed";
+	ImVec4 color;
+	std::vector<float> xValues, yValues;
+};
+
+enum class Font
+{
+	Default = 0,
+	OpenSans,
+	OpenSansHeading,
+	BigIcons
+};
 
 typedef struct {
 	float x, y;

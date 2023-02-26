@@ -12,6 +12,7 @@ public:
 
 	virtual void Render() override;
 	virtual float ProcessSample(float newSample) override;
+	virtual Signal ProcessSignal(const Signal& signal) override;
 
 private:
 	float m_Gain = 1.0f;
@@ -26,6 +27,7 @@ public:
 
 	virtual void Render() override;
 	virtual float ProcessSample(float newSample) override;
+	virtual Signal ProcessSignal(const Signal& signal) override;
 
 private:
 	float m_Offset = 1.0f;
@@ -40,6 +42,7 @@ public:
 
 	virtual void Render() override;
 	virtual float ProcessSample(float newSample) override;
+	virtual Signal ProcessSignal(const Signal& signal) override;
 
 private:
 	float m_Offset = 1.0f;

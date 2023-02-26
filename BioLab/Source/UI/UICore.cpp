@@ -1,6 +1,8 @@
 #include "UICore.h"
 #include "Core.h"
 
+#include "IconsMaterialDesign.h"
+
 #include <stb_image.h>
 
 #include <implot.h>
@@ -24,6 +26,8 @@ namespace Backend = DirectX;
 namespace Backend = OpenGL;
 #endif
 
+
+std::unordered_map<int, ImFont*> UICore::s_Fonts;
 
 void UICore::Initialize()
 {
@@ -78,6 +82,35 @@ std::string UICore::OpenFileDialog(const char* filter)
 std::string UICore::SaveFileDialog(const char* filter)
 {
 	return Backend::SaveFileDialog(filter);
+}
+
+void UICore::LoadFonts()
+{
+	static const ImWchar icons_ranges[] = { ICON_MIN_MD, ICON_MAX_16_MD, 0 };
+	ImFontConfig icons_config;
+	icons_config.MergeMode = true;
+	icons_config.PixelSnapH = true;
+	icons_config.OversampleH = 4;
+	icons_config.OversampleV = 4;
+
+	ImFontConfig icons_config1;
+	icons_config1.OversampleH = 4;
+	icons_config1.OversampleV = 4;
+	ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/OpenSans/OpenSans-Regular.ttf", 20.0f, &icons_config1);
+	ImFont* openSans = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 20.0f, &icons_config, icons_ranges);
+
+	ImFont* openSansHeading = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/OpenSans/OpenSans-Bold.ttf", 30.0f);
+	ImFont* bigIcons = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 30, 0, icons_ranges);
+	
+	s_Fonts[(int)Font::Default] = openSans;
+	s_Fonts[(int)Font::OpenSans] = openSans;
+	s_Fonts[(int)Font::OpenSansHeading] = openSansHeading;
+	s_Fonts[(int)Font::BigIcons] = bigIcons;
+}
+
+ImFont* UICore::GetFont(Font font)
+{
+	return s_Fonts[int(font)];
 }
 
 void UICore::SetupStyle()
@@ -168,8 +201,8 @@ void UICore::SetLightColorTheme()
 	imguiColors[ImGuiCol_CheckMark] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
 	imguiColors[ImGuiCol_SliderGrab] = ImVec4(0.26f, 0.59f, 0.98f, 0.78f);
 	imguiColors[ImGuiCol_SliderGrabActive] = ImVec4(0.46f, 0.54f, 0.80f, 0.60f);
-	imguiColors[ImGuiCol_Button] = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
-	imguiColors[ImGuiCol_ButtonHovered] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+	imguiColors[ImGuiCol_Button] = ImVec4(0.26f, 0.59f, 0.98f, 1.0f);
+	imguiColors[ImGuiCol_ButtonHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.4f);
 	imguiColors[ImGuiCol_ButtonActive] = ImVec4(0.06f, 0.53f, 0.98f, 1.00f);
 	imguiColors[ImGuiCol_Header] = ImVec4(0.26f, 0.59f, 0.98f, 0.31f);
 	imguiColors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);

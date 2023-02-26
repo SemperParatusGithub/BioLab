@@ -20,7 +20,7 @@ struct Pin
 	ax::NodeEditor::PinId id;
 	bool active = false;
 
-	Node* node;
+	Node* node = nullptr;
 };
 
 struct Link
@@ -39,10 +39,15 @@ public:
 	enum class Type
 	{
 		None = 0,
-
 		Comment,
+
+		// Live processing nodes:
 		Source,
 		Scope,
+
+		// Post processing nodes
+		InputSignal,
+		OutputSignal,
 
 		Filter,
 		Gain,
@@ -54,8 +59,8 @@ public:
 	Type type = Type::None;
 	ax::NodeEditor::NodeId id;
 
-	Vector2f position;
-	Vector2f size;
+	Vector2f position = { 0.0f, 0.0f };
+	Vector2f size = { 200.0f, 200.0f };
 
 	Pin	inputPin;
 	Pin	outputPin;
@@ -63,6 +68,7 @@ public:
 	Node* nextLinkedNode = nullptr;
 
 public:
-	virtual float ProcessSample(float newSample) { return 0.0f; };
-	virtual void Render() {};
+	virtual float ProcessSample(float newSample)		{ return newSample; };
+	virtual Signal ProcessSignal(const Signal& signal)	{ return signal; };
+	virtual void Render()								{};
 };

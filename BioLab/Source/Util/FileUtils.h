@@ -9,19 +9,10 @@
 #include <implot.h>
 
 
-
-struct Signal
-{
-	int id = 0;
-	std::string label = "Unnamed";
-	ImVec4 color;
-	std::vector<float> xValues, yValues;
-};
-
 class FileUtils
 {
-private:
-	static int GetColorMapIndex()
+public:
+	static ImVec4 GetNextColor()
 	{
 		static int index = 0;
 
@@ -29,7 +20,7 @@ private:
 		if (index >= 16)
 			index = 0;
 
-		return index;
+		return ImPlot::GetColormapColor(index);
 	}
 	static int GetNextSignalID()
 	{
@@ -42,31 +33,49 @@ private:
 public:
 	static Signal LoadCSV(const std::string& filepath)
 	{
-		Signal sig;
-		sig.id = GetNextSignalID();
-		sig.label = "Signal" + std::to_string(sig.id);
-		sig.color = ImPlot::GetColormapColor(GetColorMapIndex());
+		if (filepath.empty())
+		{
+			LOG_ERROR("Failed to load CSV file: %s", filepath.c_str());
+			return Signal();
+		}
 
-		LOG_INFO("Loading CSV file: %s", filepath.c_str());
+		Signal signal;
+		signal.id = GetNextSignalID();
+		signal.label = filepath.substr(filepath.find_last_of("\\") + 1);
+		signal.color = GetNextColor();
+
+		LOG_INFO("Loading CSV file: %s", filepath.c_str());		
+
+		std::ifstream is;
+		is.open(filepath);
+		std::string line;
+		while (std::getline(is, line))
+		{
+			auto comma = line.find(',');
+			float x = std::stof(line.substr(0, comma));
+			float y = std::stof(line.substr(comma + 1, line.size() - comma + 1));
+			signal.xValues.push_back(x);
+			signal.yValues.push_back(y);
+
+			LOG_INFO("x: %.2f, y: %.2f", x, y);
+		}
+
+		return signal;
+	}
+
+	static void SaveCSV(const Signal& signal, const std::string& filepath)
+	{
+		LOG_INFO("Writing CSV file: %s", filepath.c_str());
 
 		if (!filepath.empty())
 		{
-			std::ifstream is;
-			is.open(filepath);
-			std::string line;
-			while (std::getline(is, line))
-			{
-				auto comma = line.find(',');
-				float x = std::stof(line.substr(0, comma));
-				float y = std::stof(line.substr(comma + 1, line.size() - comma + 1));
-				sig.xValues.push_back(x);
-				sig.yValues.push_back(y);
+			std::ofstream out;
+			out.open(filepath);
 
-				LOG_INFO("x: %.2f, y: %.2f", x, y);
-			}
+			for (int i = 0; i < signal.xValues.size(); i++)
+				out << signal.xValues[i] << "," << signal.yValues[i] << std::endl;
+
+			out.flush();
 		}
-
-		return sig;
 	}
-	//static void WriteCSV(const std::string& filepath);
 };
