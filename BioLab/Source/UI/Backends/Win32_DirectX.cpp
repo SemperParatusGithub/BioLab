@@ -74,7 +74,7 @@ namespace DirectX
         g_wc = { sizeof(g_wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"ImGui Example", NULL };
         ::RegisterClassExW(&g_wc);
 
-        g_hwnd = ::CreateWindowW(g_wc.lpszClassName, L"Window (Win32 DirectX12)", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, g_wc.hInstance, NULL);
+        g_hwnd = ::CreateWindowW(g_wc.lpszClassName, L"BioLab (Win32 DirectX12)", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, g_wc.hInstance, NULL);
 
         // Initialize Direct3D
         if (!CreateDeviceD3D(g_hwnd))

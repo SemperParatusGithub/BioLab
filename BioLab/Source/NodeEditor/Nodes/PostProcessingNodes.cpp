@@ -19,14 +19,12 @@ InputSignal::~InputSignal()
 
 void InputSignal::Render()
 {
-	ImGui::Text("Input Signal (ID: %d)", m_SignalID);
-
 	auto* instance = Application::Instance();
-	auto signal = instance->GetSignalByID(m_SignalID);
-	if (signal.id != -1)
+	auto* signal = instance->GetSignalByID(m_SignalID);
+	if (signal != nullptr)
 	{
-		ImPlot::ItemIcon(signal.color); ImGui::SameLine();
-		ImGui::TextUnformatted(signal.label.c_str());
+		ImPlot::ItemIcon(signal->color); ImGui::SameLine();
+		ImGui::TextUnformatted(signal->label.c_str());
 	}
 	else {
 		ImGui::Button("target");

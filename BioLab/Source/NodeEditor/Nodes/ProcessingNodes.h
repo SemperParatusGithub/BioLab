@@ -2,6 +2,7 @@
 #include "Core.h"
 
 #include "NodeEditor/Node.h"
+#include "Util/Signal.h"
 
 
 class Gain : public Node

@@ -147,9 +147,9 @@ Script ScriptSerializer::CreateNewLiveScript()
 {
 	Script newScript;
 	newScript.m_Type = Script::Type::LiveScript;
-	newScript.m_Channel1Node = newScript.CreateNode("Channel 1", Node::Type::Source, Vector2f{ 0,0 }, Vector2f{ 200,200 });
-	newScript.m_Channel2Node = newScript.CreateNode("Channel 2", Node::Type::Source, Vector2f{ 0,0 }, Vector2f{ 200,200 });
-	newScript.m_Channel3Node = newScript.CreateNode("Channel 3", Node::Type::Source, Vector2f{ 0,0 }, Vector2f{ 200,200 });
+	newScript.m_Channel1Node = newScript.CreateNode("Channel 1", Node::Type::Source, Vector2f{ 0.0f, 0.0f }, Vector2f{ 100.0f, 100.0f });
+	newScript.m_Channel2Node = newScript.CreateNode("Channel 2", Node::Type::Source, Vector2f{ 0.0f, 0.0f }, Vector2f{ 100.0f, 100.0f });
+	newScript.m_Channel3Node = newScript.CreateNode("Channel 3", Node::Type::Source, Vector2f{ 0.0f, 0.0f }, Vector2f{ 100.0f, 100.0f });
 
 	return newScript;
 }
@@ -157,8 +157,8 @@ Script ScriptSerializer::CreateNewPostProcessScript()
 {
 	Script newScript;
 	newScript.m_Type = Script::Type::PostProcessScript;
-	newScript.m_InputSignalNode = newScript.CreateNode("Input Signal", Node::Type::InputSignal, Vector2f{ 0,0 }, Vector2f{ 200,200 });
-	newScript.m_OutputSignalNode = newScript.CreateNode("Output Signal", Node::Type::OutputSignal, Vector2f{ 0,0 }, Vector2f{ 200,200 });
+	newScript.m_InputSignalNode = newScript.CreateNode("Input Signal", Node::Type::InputSignal, Vector2f{ 0.0f, 0.0f }, Vector2f{ 200.0f, 200.0f });
+	newScript.m_OutputSignalNode = newScript.CreateNode("Output Signal", Node::Type::OutputSignal, Vector2f{ 0.0f, 0.0f }, Vector2f{ 200.0f, 200.0f });
 
 	return newScript;
 }

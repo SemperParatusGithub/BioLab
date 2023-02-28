@@ -20,6 +20,7 @@ set(HEADERS
     Source/SignalProcessing/DigitalFilter.h
     Source/SignalProcessing/FFT.h
 
+    Source/UI/DefaultPlotWindow.h
     Source/UI/IconsMaterialDesign.h
     Source/UI/PlotWindow.h
     Source/UI/UICore.h
@@ -30,6 +31,7 @@ set(HEADERS
     Source/Util/FileUtils.h
     Source/Util/LiveBuffer.h
     Source/Util/SerialPort.h
+    Source/Util/Signal.h
 
     External/stb_image/stb_image.h
 )
@@ -53,6 +55,7 @@ set(SOURCES
     Source/SignalProcessing/DigitalFilter.cpp
     Source/SignalProcessing/FFT.cpp
 
+    Source/UI/DefaultPlotWindow.cpp
     Source/UI/PlotWindow.cpp
     Source/UI/UICore.cpp
     Source/UI/Backends/GLFW_OpenGL.cpp
@@ -62,6 +65,7 @@ set(SOURCES
     Source/Util/FileUtils.cpp
     Source/Util/LiveBuffer.cpp
     Source/Util/SerialPort.cpp
+    Source/Util/Signal.cpp
 
     External/stb_image/stb_image.cpp
 )

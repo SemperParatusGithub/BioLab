@@ -12,24 +12,13 @@ using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
 
-
-struct Signal
-{
-	int id = -1;
-	std::string label = "Unnamed";
-	ImVec4 color;
-	std::vector<float> xValues, yValues;
-
-	bool markers = false;
-	bool shaded = false;
-	float thickness = 2.0f;
-	float alpha = 0.2f;
-};
-
 enum class Font
 {
 	Default = 0,
 	OpenSans,
+	OpenSansBig,
+	OpenSansTitle,
+	OpenSansHeader,
 	OpenSansHeading,
 	BigIcons
 };

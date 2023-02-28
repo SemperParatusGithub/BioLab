@@ -7,6 +7,7 @@
 #include "Script.h"
 #include "ScriptSerializer.h"
 
+#include "Util/Signal.h"
 
 struct NodeEditorConfig
 {
@@ -29,7 +30,8 @@ public:
 	void Flow();
 
 	void SetupStyle();
-	void SetupColors();
+	void SetLightColorTheme();
+	void SetDarkColorTheme();
 
 	void SaveLiveScript(const std::string& filepath);
 	void LoadLiveScript(const std::string& filepath);
@@ -39,6 +41,9 @@ public:
 
 	Node* FindNodeByID(ax::NodeEditor::NodeId id) { return m_ActiveScript.FindNode(id); }
 	const Script& GetActiveScript() const { return m_ActiveScript; }
+
+	void ProhibitDeletions() { m_DeletionProhibited = true; }
+	void AllowDeletions() { m_DeletionProhibited = false; }
 
 private:
 	void ProcessNodeWithSample(Node* node, float returnValue)
@@ -75,7 +80,8 @@ private:
 	NodeEditorConfig m_Config;
 	ax::NodeEditor::EditorContext* m_EditorContext;
 
-	bool m_IsOpen = true;
+	bool m_IsOpen = false;
+	bool m_DeletionProhibited = false;
 
 	bool m_ShowDragDropTooltip = false;
 	ax::NodeEditor::NodeId contextNodeId = 0;

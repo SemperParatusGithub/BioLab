@@ -15,8 +15,10 @@
 #include <chrono>
 
 #include "Util/FileUtils.h"
+#include "Util/Signal.h"
 
 #include "UI/PlotWindow.h"
+#include "UI/DefaultPlotWindow.h"
 
 
 #define ARDUINO_PORT "\\\\.\\COM3"
@@ -29,14 +31,26 @@ public:
 	~Application();
 
 	static Application* Instance() { return s_Instance; }
-	Signal GetSignalByID(int signalID)
+	Signal* GetSignalByID(int signalID)
 	{
 		for (auto& signal : m_LoadedSignals)
 		{
 			if (signal.id == signalID)
-				return signal;
+				return &signal;
 		}
-		return Signal();
+		return nullptr;
+	}
+
+	Scope* GetScopeByID(int scopeID)
+	{
+		// useless af
+		Node* node = m_NodeEditor->FindNodeByID(ax::NodeEditor::NodeId(scopeID));
+		if (node != nullptr)
+		{
+			Scope* scopeNode = reinterpret_cast<Scope*>(node);
+			return scopeNode;
+		}
+		return nullptr;
 	}
 
 public:
@@ -51,6 +65,8 @@ private:
 
 private:
 	friend class NodeEditor;
+	friend class PlotWindow;
+	friend class DefaultPlotWindow;
 
 	static Application* s_Instance;
 
@@ -79,4 +95,8 @@ private:
 	bool m_Reading = false;
 
 	std::vector<Signal> m_LoadedSignals;
+
+	PlotWindow m_PlotWindow;
+	PlotWindow m_PlotWindow2;
+	DefaultPlotWindow m_DefaultPlotWindow;
 };

@@ -5,8 +5,11 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <algorithm>
 
 #include <implot.h>
+
+#include "Signal.h"
 
 
 class FileUtils
@@ -57,7 +60,7 @@ public:
 			signal.xValues.push_back(x);
 			signal.yValues.push_back(y);
 
-			LOG_INFO("x: %.2f, y: %.2f", x, y);
+			// LOG_INFO("x: %.2f, y: %.2f", x, y);
 		}
 
 		return signal;
@@ -67,10 +70,15 @@ public:
 	{
 		LOG_INFO("Writing CSV file: %s", filepath.c_str());
 
-		if (!filepath.empty())
+		std::string newFilepath = filepath;
+		std::replace(newFilepath.begin(), newFilepath.end(), 'x', '_');
+
+		LOG_INFO("Writing CSV file: %s", newFilepath.c_str());
+
+		if (!newFilepath.empty())
 		{
 			std::ofstream out;
-			out.open(filepath);
+			out.open(newFilepath);
 
 			for (int i = 0; i < signal.xValues.size(); i++)
 				out << signal.xValues[i] << "," << signal.yValues[i] << std::endl;

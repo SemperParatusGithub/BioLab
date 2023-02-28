@@ -4,6 +4,8 @@
 #include <imgui_node_editor.h>
 #include <vector>
 
+#include "Util/Signal.h"
+
 
 struct Node;
 

@@ -83,16 +83,16 @@ void NodeEditor::ExecutePostProcessScript()
 
 	// 1. retrieve Signal from Application
 	Application* instance = Application::Instance();
-	Signal inputSignal = instance->GetSignalByID(inputSignalID);
+	Signal* inputSignal = instance->GetSignalByID(inputSignalID);
 
-	if (inputSignal.id == -1)
+	if (inputSignal == nullptr)
 	{
 		LOG_ERROR("No Input Signal defined");
 		return;
 	}
 
 	// 2. Process nodes recursively
-	ProcessNodeWithSignal(m_ActiveScript.m_InputSignalNode, inputSignal);
+	ProcessNodeWithSignal(m_ActiveScript.m_InputSignalNode, *inputSignal);
 	OutputSignal outputSignal = (*(OutputSignal*)outputSignalNode);
 
 	// 3. emplace output to Application
@@ -116,21 +116,19 @@ void NodeEditor::Render()
 		ImGui::PushFont(UICore::GetFont(Font::Default));
 		ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodePadding, ImVec4(8, 4, 8, 8));
 		ax::NodeEditor::Begin("Node Editor", ImGui::GetContentRegionAvail());
+		for (auto* node : m_ActiveScript.m_Nodes)
 		{
-			for (auto* node : m_ActiveScript.m_Nodes)
+			// comments are handled specially
+			if (node->type == Node::Type::Comment)
 			{
-				// comments are handled specially
-				if (node->type == Node::Type::Comment)
-				{
-					node->Render();
-					continue;
-				}
-
-				DrawNode(node);
+				node->Render();
+				continue;
 			}
 
-			HandleLinks();
+			DrawNode(node);
 		}
+
+		HandleLinks();
 
 		// Render Popups
 		{
@@ -155,9 +153,9 @@ void NodeEditor::Render()
 			if (ImGui::BeginPopup("Create New Node"))
 			{
 				if (ImGui::MenuItem("Comment"))
-					m_ActiveScript.CreateNode("Comment", Node::Type::Comment, { 100.0f, 100.0f }, { 200.0f, 100.0f });
+					m_ActiveScript.CreateNode("Comment", Node::Type::Comment, { 100.0f, 100.0f }, { 500.0f, 400.0f });
 				if (ImGui::MenuItem("Scope"))
-					m_ActiveScript.CreateNode("Scope", Node::Type::Scope, { 100.0f, 100.0f }, { 200.0f, 100.0f });
+					m_ActiveScript.CreateNode("Scope", Node::Type::Scope, { 100.0f, 100.0f }, { 150.0f, 100.0f });
 				if (ImGui::MenuItem("Filter"))
 					m_ActiveScript.CreateNode("Filter", Node::Type::Filter, { 500.0f, 500.0f }, { 350.0f, 400.0f });
 				if (ImGui::MenuItem("Gain"))
@@ -256,6 +254,19 @@ void NodeEditor::SetupStyle()
 	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
 
 	ax::NodeEditor::Style& nodeStyle = ax::NodeEditor::GetStyle();
+	//nodeStyle.NodeRounding = 0.0f;
+	nodeStyle.PinRounding = 0.0f;
+	nodeStyle.SelectedNodeBorderWidth = 4.5f;
+	nodeStyle.HoveredNodeBorderWidth = 4.5f;
+	nodeStyle.NodeBorderWidth = 2.5f;
+
+	ax::NodeEditor::SetCurrentEditor(nullptr);
+}
+void NodeEditor::SetLightColorTheme()
+{
+	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
+
+	ax::NodeEditor::Style& nodeStyle = ax::NodeEditor::GetStyle();
 	ImVec4* nodeColors = nodeStyle.Colors;
 
 	nodeColors[ax::NodeEditor::StyleColor_Bg] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -277,16 +288,16 @@ void NodeEditor::SetupStyle()
 	nodeColors[ax::NodeEditor::StyleColor_GroupBg] = ImVec4(0.95f, 0.95f, 0.95f, 0.7f);
 	nodeColors[ax::NodeEditor::StyleColor_GroupBorder] = ImVec4(0.95f, 0.95f, 0.95f, 0.7f);;
 
-	//nodeStyle.NodeRounding = 0.0f;
-	nodeStyle.PinRounding = 0.0f;
-	nodeStyle.SelectedNodeBorderWidth = 4.5f;
-	nodeStyle.HoveredNodeBorderWidth = 4.5f;
-	nodeStyle.NodeBorderWidth = 2.5f;
-
 	ax::NodeEditor::SetCurrentEditor(nullptr);
 }
-void NodeEditor::SetupColors()
+void NodeEditor::SetDarkColorTheme()
 {
+	ax::NodeEditor::SetCurrentEditor(m_EditorContext);
+
+	ax::NodeEditor::Style& nodeStyle = ax::NodeEditor::GetStyle();
+	ImVec4* nodeColors = ax::NodeEditor::Style().Colors;
+
+	ax::NodeEditor::SetCurrentEditor(nullptr);
 }
 
 void NodeEditor::SaveLiveScript(const std::string& filepath)
@@ -390,15 +401,15 @@ void NodeEditor::HandleLinks()
 	}
 	ax::NodeEditor::EndCreate(); // Wraps up object creation action handling.
 
-
 	// Handle deletion action
+	if (m_DeletionProhibited)
+		return;
 	if (ax::NodeEditor::BeginDelete())
 	{
 		// There may be many links marked for deletion, let's loop over them.
 		ax::NodeEditor::LinkId deletedLinkId;
 		while (ax::NodeEditor::QueryDeletedLink(&deletedLinkId))
 		{
-			// If you agree that link can be deleted, accept deletion.
 			if (ax::NodeEditor::AcceptDeletedItem())
 			{
 				m_ActiveScript.DeleteLink(deletedLinkId);
@@ -408,10 +419,7 @@ void NodeEditor::HandleLinks()
 		ax::NodeEditor::NodeId deletedNodeId = 0;
 		while (ax::NodeEditor::QueryDeletedNode(&deletedNodeId))
 		{
-			if (!CanNodeBeModified(deletedNodeId))
-				continue;
-
-			if (ax::NodeEditor::AcceptDeletedItem())
+			if (ax::NodeEditor::AcceptDeletedItem() && CanNodeBeModified(deletedNodeId))
 			{
 				m_ActiveScript.DeleteNode(deletedNodeId);
 			}

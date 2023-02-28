@@ -32,9 +32,13 @@ Application::Application()
 
 	m_NodeEditor = std::make_unique<NodeEditor>();
 	m_NodeEditor->SetupStyle();
+	m_NodeEditor->SetDarkColorTheme();
 
 	m_ReaderThread = std::thread(&Application::SimulateReadSerialPort, this);
 	//m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
+
+	m_PlotWindow.SetName("Plot Window 1");
+	m_PlotWindow2.SetName("Plot Window 2");
 }
 
 Application::~Application()
@@ -71,132 +75,16 @@ void Application::Run()
 			m_InputQueueMutex.unlock();
 		}
 
-		bool minimized = false; // m_Window->GetSize().x == 0 && m_Window->GetSize().y == 0;
-		if (!minimized)
-		{
-			BeginDockspace();
+		BeginDockspace();
 
-			static bool plotWindowOpen = true;
-			if (plotWindowOpen)
-			{
-				if (ImGui::Begin(ICON_MD_INSERT_CHART" Plot Window", &plotWindowOpen, ImGuiWindowFlags_NoCollapse))
-				{
-					if (m_LiveValuesX.Size() != 0)
-					{
-						ImPlot::SetNextAxisLimits(ImAxis_Y1, -2000, 6500, ImGuiCond_FirstUseEver);
-						float xMin = (float)m_LiveValuesX.Back() - 10.5f;
-						float xMax = (float)m_LiveValuesX.Back() + 0.5f;
-						ImPlot::SetNextAxisLimits(ImAxis_X1, xMin, xMax, ImGuiCond_Always);
+		m_NodeEditor->Render();		
+		m_DefaultPlotWindow.Render();
+		m_PlotWindow.Render();
+		m_PlotWindow2.Render();
 
-						ImPlot::BeginSubplots("", 3, 1, ImGui::GetContentRegionAvail(), ImPlotSubplotFlags_LinkAllX);
+		// ImGui::ShowDemoWindow();
 
-						ImPlot::BeginPlot("CH1", 0, 0, ImGui::GetContentRegionAvail());
-						ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-						ImPlot::PlotLine("data", m_LiveValuesX.Data(), m_LiveValuesCH1.Data(), m_LiveValuesX.Size());
-						ImPlot::EndPlot();
-
-						ImPlot::BeginPlot("CH2", 0, 0, ImGui::GetContentRegionAvail());
-						ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-						ImPlot::PlotLine("data", m_LiveValuesX.Data(), m_LiveValuesCH2.Data(), m_LiveValuesX.Size());
-						ImPlot::EndPlot();
-
-						ImPlot::BeginPlot("CH3", 0, 0, ImGui::GetContentRegionAvail());
-						ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-						ImPlot::PlotLine("data", m_LiveValuesX.Data(), m_LiveValuesCH3.Data(), m_LiveValuesX.Size());
-						ImPlot::EndPlot();
-
-						ImPlot::EndSubplots();
-					}
-				}
-				ImGui::End();
-			}
-
-			static bool scopeWindowOpen = true;
-			if (scopeWindowOpen)
-			{
-				if (ImGui::Begin(ICON_MD_INSERT_CHART" Scope Window", &scopeWindowOpen, ImGuiWindowFlags_NoCollapse))
-				{
-					if (m_LiveValuesX.Size() != 0)
-					{
-						ImPlot::SetNextAxisLimits(ImAxis_Y1, -2000, 6500, ImGuiCond_FirstUseEver);
-						float xMin = (float)m_LiveValuesX.Back() - 10.5f;
-						float xMax = (float)m_LiveValuesX.Back() + 0.5f;
-						ImPlot::SetNextAxisLimits(ImAxis_X1, xMin, xMax, ImGuiCond_Always);
-					}
-
-					ImPlot::BeginPlot("CH1", 0, 0, ImGui::GetContentRegionAvail());
-
-					if (ImPlot::BeginDragDropTargetPlot()) 
-					{
-						const ImGuiPayload* scopePayload = ImGui::AcceptDragDropPayload("DND_SCOPE");
-						if (scopePayload)
-						{
-							int id = *(int*)scopePayload->Data;
-							LOG_INFO("dropped Scope: %d", id);
-
-							if (std::find(m_ActiveScopes.begin(), m_ActiveScopes.end(), id) == m_ActiveScopes.end())
-								m_ActiveScopes.push_back(id);
-						}
-
-						const ImGuiPayload* signalPayload = ImGui::AcceptDragDropPayload("DND_SIGNAL");
-						if (signalPayload)
-						{
-							int id = *(int*)signalPayload->Data;
-							LOG_INFO("dropped Signal: %d", id);
-
-							if (std::find(m_ActiveSignals.begin(), m_ActiveSignals.end(), id) == m_ActiveSignals.end())
-								m_ActiveSignals.push_back(id);
-						}
-						ImPlot::EndDragDropTarget();
-					}
-
-					for (auto& id : m_ActiveScopes)
-					{
-						Node* node = m_NodeEditor->FindNodeByID(ax::NodeEditor::NodeId(id));
-						if (node != nullptr)
-						{
-							Scope* scopeNode = reinterpret_cast<Scope*>(node);
-							std::string scopeName = scopeNode->name;
-							auto& samples = scopeNode->Samples;
-
-							if (m_LiveValuesX.Size() != 0)
-								ImPlot::PlotLine(scopeName.c_str(), m_LiveValuesX.Data(), scopeNode->Samples.Data(), scopeNode->Samples.Size());
-						}
-					}
-					for (auto& id : m_ActiveSignals)
-					{
-						for (auto& signal : m_LoadedSignals)
-						{
-							if (signal.id == id)
-							{
-								ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, signal.alpha);
-
-								ImPlot::SetNextLineStyle(signal.color, signal.thickness);
-								if (signal.markers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
-								if(signal.shaded)
-									ImPlot::PlotShaded(signal.label.c_str(), signal.xValues.data(), signal.yValues.data(), signal.xValues.size());
-								else
-									ImPlot::PlotLine(signal.label.c_str(), signal.xValues.data(), signal.yValues.data(), signal.xValues.size());
-							
-								ImPlot::PopStyleVar();
-							}
-						}
-					}
-
-					ImPlot::EndPlot();
-				}
-				ImGui::End();
-			}
-
-			m_NodeEditor->Render();			
-			m_NodeEditor->ShowDebugWindow();
-			//
-			//ImGui::ShowDemoWindow();
-			ImPlot::ShowDemoWindow();
-
-
-			EndDockspace();
-		}
+		EndDockspace();
 
 		UICore::EndFrame();
 		UICore::PollEvents();
@@ -347,7 +235,6 @@ void Application::BeginDockspace()
 	ImVec2 dockspacePos = ImVec2 { viewport->Pos.x + sideBarSize.x, viewport->Pos.y + menuBarSize.y };
 	ImVec2 dockspaceSize = ImVec2 { 4.0f / 5.0f * viewport->Size.x, viewport->Size.y - menuBarSize.y };
 
-
 	// Left window
 	ImGui::SetNextWindowPos(sideBarPos);
 	ImGui::SetNextWindowSize(sideBarSize);
@@ -356,49 +243,56 @@ void Application::BeginDockspace()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 5.0f));
-	//ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 	ImGui::Begin("LeftBar", 0, windowFlags);
 	ImGui::BeginChild("Child", ImVec2(-1, -1), true);
 
-	ImGui::PushFont(UICore::GetFont(Font::OpenSansHeading));
-	ImGui::TextUnformatted(ICON_MD_LOGO_DEV"  BioLab");
+	ImGui::Spacing();
+	ImGui::PushFont(UICore::GetFont(Font::BigIcons));
+	ImGui::TextUnformatted(ICON_MD_LOCAL_HOSPITAL);
+	ImGui::SameLine();
 	ImGui::PopFont();
+	ImGui::PushFont(UICore::GetFont(Font::OpenSansTitle));
+	ImGui::TextUnformatted("BioLab Software");
+	ImGui::PopFont();
+	ImGui::Spacing();
 
 	float width = ImGui::GetContentRegionAvail().x;
-
-
 	static bool statisticsOpen = false;
-	ImGui::BeginChild("Statistics", ImVec2(width, statisticsOpen ? 150 : 40), true);
+	ImGui::BeginChild("Statistics", ImVec2(width, statisticsOpen ? 125 : 45), true);
+	ImGui::PushFont(UICore::GetFont(Font::OpenSansHeader));
 	if (ImGui::CollapsingHeader("Statistics"))
 	{
+		ImGui::PushFont(UICore::GetFont(Font::OpenSans));
 		statisticsOpen = true;
 		ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
 		ImGui::Text("Mouse Position: %.2f, %.2f", ImGui::GetMousePos().x, ImGui::GetMousePos().y);
 		ImGui::Text("LiveBuffer Size: %d", m_LiveValuesX.Size());
+		ImGui::PopFont();
 	}
 	else {
 		statisticsOpen = false;
 	}
+	ImGui::PopFont();
 	ImGui::EndChild();
 
 	static bool liveDataOpen = false;
-	ImGui::BeginChild("LiveDataChild", ImVec2(width, liveDataOpen ? 395.0f : 40), true);
+	ImGui::BeginChild("LiveDataChild", ImVec2(width, liveDataOpen ? 400 : 45), true);
 	{
-		//ImGui::PushFont(UICore::GetFont(Font::OpenSansHeading));
-		if (ImGui::CollapsingHeader("Live Data"))
+		ImGui::PushFont(UICore::GetFont(Font::OpenSansHeader));
+
+		if (ImGui::CollapsingHeader("Live Analysis"))
 		{
+			ImGui::PushFont(UICore::GetFont(Font::OpenSans));
+
 			liveDataOpen = true;
-			//ImGui::PopFont();
-
 			static int amplification[3] = { 100, 100, 100 };
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 40.0f);
-			ImGui::SliderInt("CH1", &amplification[0], 0, 255);
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 40.0f);
-			ImGui::SliderInt("CH2", &amplification[1], 0, 255);
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 40.0f);
-			ImGui::SliderInt("CH3", &amplification[2], 0, 255);
 
-			if (ImGui::Button(ICON_MD_SEND, ImVec2(30.0f, 25.0f)))
+			ImGui::Separator();
+			ImGui::PushFont(UICore::GetFont(Font::OpenSansHeading));
+			ImGui::TextUnformatted("Amplification");
+			ImGui::PopFont();
+			ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20.0f);
+			if (ImGui::Button(ICON_MD_SEND, ImVec2(30, 23)))
 			{
 				LOG_INFO("Sending Values: [%d, %d, %d]", amplification[0], amplification[1], amplification[2]);
 
@@ -406,52 +300,83 @@ void Application::BeginDockspace()
 				unsigned char writeData[4] = { MAG_BYTE, amplification[0], amplification[1], amplification[2] };
 
 				// m_SerialPort.Write uses WriteFile under the hood which is thread safe so there is no problem!!!
-				m_SerialPort.Write((void *)writeData, 4);
+				m_SerialPort.Write((void*)writeData, 4);
 			}
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+				ImGui::SetTooltip("Apply values to potentiometer");
 
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
-			if (ImGui::Button("Save"))
-			{
+			ImGui::Separator();
+
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 40.0f);
+			ImGui::SliderInt("CH1", &amplification[0], 0, 255);
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 40.0f);
+			ImGui::SliderInt("CH2", &amplification[1], 0, 255);
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 40.0f);
+			ImGui::SliderInt("CH3", &amplification[2], 0, 255);
+
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::PushFont(UICore::GetFont(Font::OpenSansHeading));
+			ImGui::TextUnformatted("Script");
+			ImGui::PopFont();
+			ImGui::SameLine(ImGui::GetContentRegionAvail().x - 93.0f);
+
+			if (ImGui::Button(ICON_MD_SAVE, ImVec2(30, 23)))
 				m_NodeEditor->SaveLiveScript(UICore::SaveFileDialog("Live Script(*.livescript)\0*.livescript\0"));
-			}
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+				ImGui::SetTooltip("Save Script");
 			ImGui::SameLine();
-			if (ImGui::Button("Load"))
-			{
+
+			if (ImGui::Button(ICON_MD_FILE_OPEN, ImVec2(30, 23)))
 				m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Live Script(*.livescript)\0*.livescript\0"));
-			}
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+				ImGui::SetTooltip("Load Script");
 			ImGui::SameLine();
-			if (ImGui::Button("Create"))
-			{
+
+			if (ImGui::Button(ICON_MD_ADD, ImVec2(30, 23)))
 				m_NodeEditor->CreateLiveScript();
-			}
-			ImGui::PopStyleColor();
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+				ImGui::SetTooltip("Create new Script");
+			ImGui::Separator();
+
+			ImGui::TextUnformatted("No active Script");
 
 			auto dif = std::chrono::high_resolution_clock::now() - m_RecordingStart;
 			float elapsed = m_Recording ? dif.count() / 1e9 : 0.0f;
 
-			if (ImGui::Button("Start Recording"))
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::PushFont(UICore::GetFont(Font::OpenSansHeading));
+			ImGui::TextUnformatted("Recording");
+			ImGui::PopFont();
+			ImGui::SameLine(ImGui::GetContentRegionAvail().x - 55.0f);
+			if (ImGui::Button(ICON_MD_START, ImVec2(30, 23)))
 			{
 				m_Recording = true;
 				m_RecordingStart = std::chrono::high_resolution_clock::now();
 
 				std::time_t now = std::time(nullptr);  // get current time
 				char buffer[80];
-				std::strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+				std::strftime(buffer, 80, "%Y-%m-%d_%H-%M-%S", std::localtime(&now));
 				std::cout << "Current date and time: " << buffer << std::endl;
-				m_OutputSignalCH1.label = "CH1  " + std::string(buffer);
-				m_OutputSignalCH2.label = "CH2  " + std::string(buffer);
-				m_OutputSignalCH3.label = "CH3  " + std::string(buffer);
+				m_OutputSignalCH1.label = "CH1_" + std::string(buffer);
+				m_OutputSignalCH2.label = "CH2_" + std::string(buffer);
+				m_OutputSignalCH3.label = "CH3_" + std::string(buffer);
 			}
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+				ImGui::SetTooltip("Start Recording");
 			ImGui::SameLine();
-			if (ImGui::Button("Stop Recording") || elapsed > m_RecordingDuration && m_Recording)
+			if (ImGui::Button(ICON_MD_STOP, ImVec2(30, 23)) || elapsed > m_RecordingDuration && m_Recording)
 			{
 				m_Recording = false;
 				m_OutputSignalCH1.id = FileUtils::GetNextSignalID();
 				m_OutputSignalCH2.id = FileUtils::GetNextSignalID();
 				m_OutputSignalCH3.id = FileUtils::GetNextSignalID();
+
 				m_OutputSignalCH1.color = FileUtils::GetNextColor();
 				m_OutputSignalCH2.color = FileUtils::GetNextColor();
 				m_OutputSignalCH3.color = FileUtils::GetNextColor();
+
 				m_LoadedSignals.push_back(m_OutputSignalCH1);
 				m_LoadedSignals.push_back(m_OutputSignalCH2);
 				m_LoadedSignals.push_back(m_OutputSignalCH3);
@@ -464,27 +389,42 @@ void Application::BeginDockspace()
 				m_OutputSignalCH2 = Signal();
 				m_OutputSignalCH3 = Signal();
 			}
-			ImGui::SliderFloat("Druation", &m_RecordingDuration, 5.0f, 20.0f);
-			ImGui::Text("Recording: %.2f", elapsed);
-			ImGui::ProgressBar(elapsed / m_RecordingDuration, ImVec2(ImGui::GetContentRegionAvail().x, 75.0f));
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+				ImGui::SetTooltip("Stop Recording");
+			ImGui::Separator();
+
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 75.0f);
+			ImGui::SliderFloat("Duration", &m_RecordingDuration, 5.0f, 20.0f);
+			ImGui::ProgressBar(elapsed / m_RecordingDuration, ImVec2(ImGui::GetContentRegionAvail().x, 40.0f));
+			ImGui::PopFont(); // OpenSans
 		}
 		else {
 			liveDataOpen = false;
 		}
 	}
+	ImGui::PopFont();
 	ImGui::EndChild();
 
 	static bool processDataOpen = false;
-	ImGui::BeginChild("ProcessDataChild", ImVec2(width, processDataOpen ? width : 40), true);
+	ImGui::BeginChild("ProcessDataChild", ImVec2(width, processDataOpen ? 400 : 45), true);
+	ImGui::PushFont(UICore::GetFont(Font::OpenSansHeader));
 	if (ImGui::CollapsingHeader("Data Analysis"))
 	{
 		processDataOpen = true;
+		ImGui::PushFont(UICore::GetFont(Font::OpenSans));
+
+		ImGui::Separator();
+		ImGui::PushFont(UICore::GetFont(Font::OpenSansHeading));
+		ImGui::TextUnformatted("Loaded Signals");
+		ImGui::PopFont();
+		ImGui::Separator();
+
+		if (ImGui::BeginChild("LoadedSignals + Options", ImVec2(width * 0.25f, width * 0.5f)))
 		{
-			ImGui::BeginChild("SignalOptions", ImVec2(width * 0.25f, width * 0.5f));
 			if (ImGui::Button("Load", ImVec2(-1, 0)))
 			{
 				std::string path = UICore::OpenFileDialog("Data file (*.csv)");
-				auto &signal = FileUtils::LoadCSV(path);
+				auto& signal = FileUtils::LoadCSV(path);
 				m_LoadedSignals.push_back(signal);
 			}
 			if (ImGui::Button("Clear", ImVec2(-1, 0)))
@@ -494,7 +434,7 @@ void Application::BeginDockspace()
 			ImGui::EndChild();
 			ImGui::SameLine();
 			ImGui::BeginChild("Signals", ImVec2(0.0f, width * 0.5f), true);
-			for (auto &signal : m_LoadedSignals)
+			for (auto& signal : m_LoadedSignals)
 			{
 				bool sel = false;
 				ImPlot::ItemIcon(signal.color);
@@ -528,28 +468,32 @@ void Application::BeginDockspace()
 		}
 		ImGui::EndChild();
 
-		if (m_NodeEditor->GetActiveScript().GetScriptType() == Script::Type::PostProcessScript)
-			ImGui::Text("Active Script: %s", m_NodeEditor->GetActiveScript().GetName().c_str());
-		else
-			ImGui::Text("No active postprocess Script");
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::PushFont(UICore::GetFont(Font::OpenSansHeading));
+		ImGui::TextUnformatted("Script");
+		ImGui::PopFont();
+		ImGui::SameLine(ImGui::GetContentRegionAvail().x - 93.0f);
 
+		if (ImGui::Button(ICON_MD_SAVE, ImVec2(30, 23)))
+			m_NodeEditor->SaveLiveScript(UICore::SaveFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+			ImGui::SetTooltip("Save Script");
 		ImGui::SameLine();
-		ImGui::Button(ICON_MD_FILE_OPEN, ImVec2(30.0f, 25.0f));
 
-		if (ImGui::Button("Save"))
-		{
-			m_NodeEditor->SaveLiveScript(UICore::SaveFileDialog("Post Process(*.postprocess)\0*.postprocess\0"));
-		}
+		if (ImGui::Button(ICON_MD_FILE_OPEN, ImVec2(30, 23)))
+			m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+			ImGui::SetTooltip("Load Script");
 		ImGui::SameLine();
-		if (ImGui::Button("Load"))
-		{
-			m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Post Process(*.postprocess)\0*.postprocess\0"));
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Create"))
-		{
+
+		if (ImGui::Button(ICON_MD_ADD, ImVec2(30, 23)))
 			m_NodeEditor->CreatePostProcessScript();
-		}
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+			ImGui::SetTooltip("Create Script");
+		ImGui::Separator();
+
+		ImGui::TextUnformatted("No active Script");
 		if (ImGui::Button("Execute"))
 		{
 			m_LiveValuesX.Clear();
@@ -561,10 +505,13 @@ void Application::BeginDockspace()
 
 			m_NodeEditor->ExecutePostProcessScript();
 		}
+
+		ImGui::PopFont();	// OpenSans
 	}
 	else {
 		processDataOpen = false;
 	}
+	ImGui::PopFont();
 	ImGui::EndChild();
 
 
@@ -597,10 +544,14 @@ void Application::BeginDockspace()
 		m_LiveValuesCH3.Clear();
 
 		m_NodeEditor->ClearScopeBuffers();
+		m_NodeEditor->ProhibitDeletions();
 
 		m_SerialPort.ClearQueue();
 		char buf = 1;
 		m_SerialPort.Write(&buf, 1);
+
+		m_PlotWindow.Clear();
+		m_PlotWindow2.Clear();
 
 		m_Reading = true;
 	}
@@ -610,6 +561,8 @@ void Application::BeginDockspace()
 		m_SerialPort.ClearQueue();
 		char buf = 0;
 		m_SerialPort.Write(&buf, 1);
+
+		m_NodeEditor->AllowDeletions();
 
 		m_Reading = false;
 	}

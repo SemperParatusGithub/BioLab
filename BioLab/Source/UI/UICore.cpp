@@ -98,12 +98,18 @@ void UICore::LoadFonts()
 	icons_config1.OversampleV = 4;
 	ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/OpenSans/OpenSans-Regular.ttf", 20.0f, &icons_config1);
 	ImFont* openSans = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 20.0f, &icons_config, icons_ranges);
+	ImFont* openSansBig = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/OpenSans/OpenSans-Regular.ttf", 25.0f);
 
-	ImFont* openSansHeading = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/OpenSans/OpenSans-Bold.ttf", 30.0f);
+	ImFont* openSansTitle = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/OpenSans/OpenSans-Bold.ttf", 30.0f);
+	ImFont* openSansHeading = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/OpenSans/OpenSans-Bold.ttf", 22.5f);
+	ImFont* openSansHeader = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/Fonts/OpenSans/OpenSans-Bold.ttf", 25.0f);
 	ImFont* bigIcons = ImGui::GetIO().Fonts->AddFontFromFileTTF("../../BioLab/Ressources/MaterialIcons-Regular.ttf", 25, 0, icons_ranges);
 	
 	s_Fonts[(int)Font::Default] = openSans;
 	s_Fonts[(int)Font::OpenSans] = openSans;
+	s_Fonts[(int)Font::OpenSansBig] = openSansBig;
+	s_Fonts[(int)Font::OpenSansTitle] = openSansTitle;
+	s_Fonts[(int)Font::OpenSansHeader] = openSansHeader;
 	s_Fonts[(int)Font::OpenSansHeading] = openSansHeading;
 	s_Fonts[(int)Font::BigIcons] = bigIcons;
 }

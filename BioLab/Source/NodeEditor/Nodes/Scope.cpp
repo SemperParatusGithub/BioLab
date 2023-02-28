@@ -16,9 +16,7 @@ Scope::~Scope()
 
 void Scope::Render()
 {
-	ImGui::Text("ID: %d", this->id);
-	ImGui::Text("Buffer Size: %d", this->Samples.Size());
-	ImGui::Button("Drag n drop source");
+	ImGui::Selectable("Output", false);
 }
 
 float Scope::ProcessSample(float newSample)
