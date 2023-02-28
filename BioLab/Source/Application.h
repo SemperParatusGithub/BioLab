@@ -12,13 +12,14 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <chrono>
 
 #include "Util/FileUtils.h"
 
 #include "UI/PlotWindow.h"
 
 
-#define ARDUINO_PORT "\\\\.\\COM7"
+#define ARDUINO_PORT "\\\\.\\COM3"
 
 
 class Application
@@ -59,6 +60,13 @@ private:
 	SerialPort m_SerialPort;
 	std::thread m_ReaderThread;
 	std::atomic<bool> m_SerialThreadRunning = true;
+
+	std::atomic<bool> m_Recording = false;
+	Signal m_OutputSignalCH1;
+	Signal m_OutputSignalCH2;
+	Signal m_OutputSignalCH3;
+	std::chrono::time_point<std::chrono::high_resolution_clock> m_RecordingStart;
+	float m_RecordingDuration = 10.0f;
 
 	LiveBuffer<float> m_LiveValuesX;
 	LiveBuffer<float> m_LiveValuesCH1, m_LiveValuesCH2, m_LiveValuesCH3;

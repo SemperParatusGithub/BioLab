@@ -29,6 +29,7 @@ public:
 
 	static void SetupStyle();
 	static void SetLightColorTheme();
+	static void SetDarkColorTheme();
 
 private:
 	static std::unordered_map<int, ImFont*> s_Fonts;

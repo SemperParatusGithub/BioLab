@@ -19,6 +19,11 @@ struct Signal
 	std::string label = "Unnamed";
 	ImVec4 color;
 	std::vector<float> xValues, yValues;
+
+	bool markers = false;
+	bool shaded = false;
+	float thickness = 2.0f;
+	float alpha = 0.2f;
 };
 
 enum class Font

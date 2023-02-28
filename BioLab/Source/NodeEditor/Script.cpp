@@ -368,6 +368,9 @@ bool Script::CanCreateLink(ax::NodeEditor::PinId from, ax::NodeEditor::PinId to)
 	auto& fromPin = FindPin(from);
 	auto& toPin = FindPin(to);
 
+	if (fromPin.node == toPin.node)
+		return false;
+
 	if (IsPinConnected(from) || IsPinConnected(to))
 		return false;
 

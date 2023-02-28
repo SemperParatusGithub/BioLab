@@ -85,6 +85,12 @@ void NodeEditor::ExecutePostProcessScript()
 	Application* instance = Application::Instance();
 	Signal inputSignal = instance->GetSignalByID(inputSignalID);
 
+	if (inputSignal.id == -1)
+	{
+		LOG_ERROR("No Input Signal defined");
+		return;
+	}
+
 	// 2. Process nodes recursively
 	ProcessNodeWithSignal(m_ActiveScript.m_InputSignalNode, inputSignal);
 	OutputSignal outputSignal = (*(OutputSignal*)outputSignalNode);
