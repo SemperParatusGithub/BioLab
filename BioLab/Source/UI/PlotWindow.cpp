@@ -60,6 +60,17 @@ void PlotWindow::Render()
 			if (signal == nullptr)
 				continue;
 			signal->Plot();
+
+			if (ImPlot::BeginLegendPopup(signal->label.c_str()))
+			{
+				ImGui::SliderFloat("Thickness", &signal->thickness, 1.0f, 8.0f);
+				ImGui::SliderFloat("Alpha", &signal->alpha, 0.0f, 1.0f);
+				ImGui::ColorEdit3("Color", (float*)&signal->color);
+				ImGui::Checkbox("Markers", &signal->markers);
+				ImGui::Checkbox("Shaded", &signal->shaded);
+
+				ImPlot::EndLegendPopup();
+			}
 		}
 		for (auto id : m_ScopeIDs)
 		{

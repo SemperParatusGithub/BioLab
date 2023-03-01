@@ -8,12 +8,12 @@ set(HEADERS
     Source/NodeEditor/NodeEditor.h
     Source/NodeEditor/Script.h
     Source/NodeEditor/ScriptSerializer.h
+
+    Source/NodeEditor/Nodes/LiveNodes.h
+    Source/NodeEditor/Nodes/OfflineNodes.h
     Source/NodeEditor/Nodes/Comment.h
-    Source/NodeEditor/Nodes/Filter.h
-    Source/NodeEditor/Nodes/PostprocessingNodes.h
     Source/NodeEditor/Nodes/ProcessingNodes.h
-    Source/NodeEditor/Nodes/Scope.h
-    Source/NodeEditor/Nodes/Source.h
+
     Source/NodeEditor/Scripts/LiveScript.h
     Source/NodeEditor/Scripts/PostProcessScript.h
 
@@ -43,12 +43,12 @@ set(SOURCES
     Source/NodeEditor/NodeEditor.cpp
     Source/NodeEditor/Script.cpp
     Source/NodeEditor/ScriptSerializer.cpp
+
+    Source/NodeEditor/Nodes/LiveNodes.cpp
+    Source/NodeEditor/Nodes/OfflineNodes.cpp
     Source/NodeEditor/Nodes/Comment.cpp
-    Source/NodeEditor/Nodes/Filter.cpp
-    Source/NodeEditor/Nodes/PostprocessingNodes.cpp
     Source/NodeEditor/Nodes/ProcessingNodes.cpp
-    Source/NodeEditor/Nodes/Scope.cpp
-    Source/NodeEditor/Nodes/Source.cpp
+
     Source/NodeEditor/Scripts/LiveScript.cpp
     Source/NodeEditor/Scripts/PostProcessScript.cpp
 

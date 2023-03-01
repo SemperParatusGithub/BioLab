@@ -3,7 +3,7 @@
 #include "UI/UICore.h"
 #include "UI/IconsMaterialDesign.h"
 
-#include "NodeEditor/Nodes/Scope.h"
+#include "NodeEditor/Nodes/LiveNodes.h"
 
 #include "Util/FileUtils.h"
 
@@ -83,6 +83,7 @@ void Application::Run()
 		m_PlotWindow2.Render();
 
 		// ImGui::ShowDemoWindow();
+		ImPlot::ShowDemoWindow();
 
 		EndDockspace();
 

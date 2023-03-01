@@ -4,6 +4,8 @@
 #include "NodeEditor/Node.h"
 #include "Util/Signal.h"
 
+#include "SignalProcessing/DigitalFilter.h"
+
 
 class Gain : public Node
 {
@@ -48,4 +50,19 @@ public:
 private:
 	float m_Offset = 1.0f;
 	bool m_Invert = false;
+};
+
+
+class Filter : public Node
+{
+public:
+	Filter(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size);
+	~Filter();
+
+	virtual void Render() override;
+	virtual float ProcessSample(float newSample) override;
+	virtual Signal ProcessSignal(const Signal& signal) override;
+
+private:
+	IIRFilter m_Filter;
 };

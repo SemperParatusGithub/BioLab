@@ -1,10 +1,5 @@
 #pragma once
 
-#include "Util/SerialPort.h"
-#include "Util/LiveBuffer.h"
-
-#include "NodeEditor/NodeEditor.h"
-
 #include <imgui.h>
 #include <implot.h>
 
@@ -14,11 +9,18 @@
 #include <mutex>
 #include <chrono>
 
+
+#include "Util/SerialPort.h"
+#include "Util/LiveBuffer.h"
 #include "Util/FileUtils.h"
 #include "Util/Signal.h"
 
 #include "UI/PlotWindow.h"
 #include "UI/DefaultPlotWindow.h"
+
+#include "NodeEditor/NodeEditor.h"
+
+#include "NodeEditor/Nodes/LiveNodes.h"
 
 
 #define ARDUINO_PORT "\\\\.\\COM3"

@@ -1,10 +1,10 @@
 #include "NodeEditor.h"
 
 #include "Nodes/Comment.h"
-#include "Nodes/Source.h"
 #include "Nodes/Filter.h"
+#include "Nodes/LiveNodes.h"
+#include "Nodes/OfflineNodes.h"
 #include "Nodes/ProcessingNodes.h"
-#include "Nodes/PostProcessingNodes.h"
 
 #include "UI/UICore.h"
 #include "UI/IconsMaterialDesign.h"

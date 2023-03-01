@@ -4,6 +4,8 @@
 #include <imgui.h>
 #include <implot.h>
 
+#include <algorithm>
+
 
 struct Signal
 {
@@ -26,8 +28,8 @@ struct Signal
 		if (markers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
 		if (shaded)
 			ImPlot::PlotShaded(label.c_str(), xValues.data(), yValues.data(), xValues.size());
-		else
-			ImPlot::PlotLine(label.c_str(), xValues.data(), yValues.data(), xValues.size());
+
+		ImPlot::PlotLine(label.c_str(), xValues.data(), yValues.data(), xValues.size());
 
 		ImPlot::PopStyleVar();
 	}

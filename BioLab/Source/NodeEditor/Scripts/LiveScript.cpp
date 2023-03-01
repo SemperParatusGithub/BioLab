@@ -3,10 +3,11 @@
 #include "UI/IconsMaterialDesign.h"
 
 #include "NodeEditor/Nodes/Comment.h"
-#include "NodeEditor/Nodes/Source.h"
-#include "NodeEditor/Nodes/Scope.h"
 #include "NodeEditor/Nodes/Filter.h"
+
 #include "NodeEditor/Nodes/ProcessingNodes.h"
+#include "NodeEditor/Nodes/LiveNodes.h"
+#include "NodeEditor/Nodes/OfflineNodes.h"
 
 #include <fstream>
 

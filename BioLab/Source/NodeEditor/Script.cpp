@@ -5,7 +5,8 @@
 #include "NodeEditor/Nodes/Scope.h"
 #include "NodeEditor/Nodes/Filter.h"
 #include "NodeEditor/Nodes/ProcessingNodes.h"
-#include "NodeEditor/Nodes/PostProcessingNodes.h"
+#include "NodeEditor/Nodes/LiveNodes.h"
+#include "NodeEditor/Nodes/OfflineNodes.h"
 
 #include <fstream>
 
