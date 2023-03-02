@@ -44,7 +44,7 @@ Signal IIRFilter::ProcessSignal(Signal signal)
 {
 	Signal outputSignal = signal;
 
-	auto inputValues = signal.xValues;
+	auto inputValues = signal.yValues;
 	std::vector<float> outputValues(inputValues.size());
 
 
@@ -77,4 +77,28 @@ void IIRFilter::ClearBuffers()
 {
 	std::fill(m_InputBuffer.begin(), m_InputBuffer.end(), 0);
 	std::fill(m_OutputBuffer.begin(), m_OutputBuffer.end(), 0);
+}
+
+void IIRFilter::AddNewCoeffcients()
+{
+	m_B.push_back(0.0f);
+	m_A.push_back(0.0f);
+
+	m_InputBuffer.push_back(0.0f);
+	m_OutputBuffer.push_back(0.0f);
+
+	ClearBuffers();
+}
+void IIRFilter::RemoveLastCoeffcients()
+{
+	if (m_A.size() <= 2)
+		return;
+
+	m_B.pop_back();
+	m_A.pop_back();
+
+	m_InputBuffer.pop_back();
+	m_OutputBuffer.pop_back();
+
+	ClearBuffers();
 }

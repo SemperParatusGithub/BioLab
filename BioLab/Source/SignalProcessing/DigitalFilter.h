@@ -19,6 +19,9 @@ public:
 
 	std::pair<std::vector<float>, std::vector<float>> GetCoefficients() { return { m_B, m_A }; }
 
+	void AddNewCoeffcients();
+	void RemoveLastCoeffcients();
+
 private:
 	std::vector<float> m_B;
 	std::vector<float> m_A;

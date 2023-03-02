@@ -66,3 +66,19 @@ public:
 private:
 	IIRFilter m_Filter;
 };
+
+
+class Average : public Node
+{
+public:
+	Average(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size);
+	~Average();
+
+	virtual void Render() override;
+	virtual float ProcessSample(float newSample) override;
+	virtual Signal ProcessSignal(const Signal& signal) override;
+
+private:
+	int m_WindowSize = 4;
+	std::vector<float> m_Buffer;
+};

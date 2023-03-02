@@ -299,6 +299,14 @@ Node* Script::CreateNode(const std::string& name, Node::Type type, const Vector2
 			node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
 			break;
 		}
+		case Node::Type::Average:
+		{
+			m_Nodes.emplace_back(new Average(GetNextNodeID(), name, position, size));
+			node = m_Nodes.back();
+			node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
+			node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
+			break;
+		}
 	}
 
 	return node;
@@ -319,6 +327,7 @@ Node* Script::CreatePlainNode(Node::Type type, const std::string& name, ax::Node
 		case Node::Type::Gain:			m_Nodes.emplace_back(new Gain(id, name, position, size));			break;
 		case Node::Type::Offset:		m_Nodes.emplace_back(new Offset(id, name, position, size));			break;
 		case Node::Type::Absolute:		m_Nodes.emplace_back(new Absolute(id, name, position, size));		break;
+		case Node::Type::Average:		m_Nodes.emplace_back(new Average(id, name, position, size));		break;
 	}
 	return m_Nodes.back();
 }

@@ -151,12 +151,21 @@ void Filter::Render()
 		if (ImGui::DragFloat(label.c_str(), &value, 0.1f))
 			A[i] = value;
 	}
+
+	// Update filter
+	m_Filter = IIRFilter(B, A);
 	
 	if (ImGui::Button("Clear buffers"))
 		m_Filter.ClearBuffers();
 
+	ImGui::SameLine();
 
-	m_Filter = IIRFilter(B, A);
+	if (ImGui::Button("+"))
+		m_Filter.AddNewCoeffcients();
+
+	ImGui::SameLine();
+	if (ImGui::Button("-"))
+		m_Filter.RemoveLastCoeffcients();
 }
 float Filter::ProcessSample(float newSample)
 {
@@ -166,4 +175,62 @@ float Filter::ProcessSample(float newSample)
 Signal Filter::ProcessSignal(const Signal& signal)
 {
 	return m_Filter.ProcessSignal(signal);
+}
+
+Average::Average(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size)
+{
+	this->name = nodeName;
+	this->id = nodeID;
+	this->position = position;
+	this->size = size;
+
+	this->type = Node::Type::Average;
+}
+Average::~Average()
+{
+}
+
+void Average::Render()
+{
+	if (ImGui::SliderInt("Window", &m_WindowSize, 1, 100))
+		m_Buffer.resize(m_WindowSize);
+
+	if (ImGui::Button("Clear Buffer"))
+		std::fill(m_Buffer.begin(), m_Buffer.end(), 0);
+}
+float Average::ProcessSample(float newSample)
+{
+	m_Buffer.push_back(newSample / m_WindowSize);
+	m_Buffer.erase(m_Buffer.begin());
+
+	float result = 0.0f;
+	for (int i = 0; i < m_WindowSize; i++)
+		result += m_Buffer[i];
+
+	return result;
+}
+Signal Average::ProcessSignal(const Signal& signal)
+{
+	Signal outputSignal = signal;
+
+	auto inputValues = signal.yValues;
+	std::vector<float> outputValues(inputValues.size());
+
+
+	for (int i = 0; i < inputValues.size(); i++)
+	{
+		float result = 0.0f;
+
+		// Non recursive filter factors
+		for (int j = 0; j < m_WindowSize; j++)
+		{
+			if (i - j < 0)
+				break;
+			result += 1.0f / m_WindowSize * inputValues[i - j];
+		}
+		outputValues[i] = result;
+	}
+
+	outputSignal.yValues = outputValues;
+	return outputSignal;
 }

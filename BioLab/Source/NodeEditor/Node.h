@@ -54,7 +54,8 @@ public:
 		Filter,
 		Gain,
 		Offset,
-		Absolute
+		Absolute,
+		Average
 	};
 
 	std::string	name;
