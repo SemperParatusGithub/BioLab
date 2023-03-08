@@ -7,6 +7,8 @@
 const std::size_t maxSize = 1000;
 const std::size_t clearSize = 250;
 
+template<typename T>
+using Buffer = std::vector<T>;
 
 template<typename T>
 class LiveBuffer

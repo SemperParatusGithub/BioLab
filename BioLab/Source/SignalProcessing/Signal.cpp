@@ -20,7 +20,10 @@ void Signal::Plot()
 	if (markers) 
 		ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
 
-	ImPlot::PlotLine(label.c_str(), xValues.data(), yValues.data(), xValues.size() / stride, 0, 0, stride * sizeof(float));
+	if(points)
+		ImPlot::PlotScatter(label.c_str(), xValues.data(), yValues.data(), xValues.size() / stride, ImPlotScatterFlags_None, 0, stride * sizeof(float));
+	else
+		ImPlot::PlotLine(label.c_str(), xValues.data(), yValues.data(), xValues.size() / stride, 0, 0, stride * sizeof(float));
 
 	ImPlot::PopStyleVar();
 }

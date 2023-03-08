@@ -20,6 +20,8 @@ public:
 	float alpha = 0.2f;
 	i32 stride = 1;
 
+	bool points = false;
+
 public:
 	void Plot();	// Note: Must be called between BeginPlot and EndPlot!!!
 };

@@ -15,6 +15,7 @@
 #include "Util/FileUtils.h"
 #include "SignalProcessing/Signal.h"
 
+#include "UI/ECGAnalyzeWindow.h"
 #include "UI/PlotWindow.h"
 #include "UI/LiveWindow.h"
 #include "UI/GoldbergerWindow.h"
@@ -82,9 +83,11 @@ private:
 	std::atomic<bool> m_SerialThreadRunning = true;
 
 	std::atomic<bool> m_Recording = false;
-	Signal m_OutputSignalCH1;
-	Signal m_OutputSignalCH2;
-	Signal m_OutputSignalCH3;
+	struct RecordingData
+	{
+		Signal CH1, CH2, CH3;
+		Signal aVR, aVL, aVF;
+	} m_RecordingData;
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_RecordingStart;
 	float m_RecordingDuration = 10.0f;
 
@@ -97,9 +100,10 @@ private:
 
 	std::vector<Signal> m_LoadedSignals;
 
-	std::vector<PlotWindow> m_PlotWindows;
+	ECGAnalyzeWindow m_ECGAnalyzeWindow;
 	LiveWindow m_LiveWindow;
 	GoldbergerWindow m_GoldbergerWindow;
+	std::vector<PlotWindow> m_PlotWindows;
 
 	LiveBuffer<float> m_xValues;
 };

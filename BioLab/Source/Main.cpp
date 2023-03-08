@@ -8,13 +8,17 @@ namespace BioLab
 {
     int Main(int argc, char** argv)
     {
+#ifdef _DEBUG
         Console::Create();
+#endif
 
         Application* app = new Application();
         app->Run();
         delete app;
 
+#ifdef _DEBUG
         Console::Release();
+#endif
 
         return 0;
     }

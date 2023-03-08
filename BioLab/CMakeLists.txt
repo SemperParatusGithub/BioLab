@@ -20,7 +20,9 @@ set(HEADERS
     Source/SignalProcessing/DigitalFilter.h
     Source/SignalProcessing/FFT.h
     Source/SignalProcessing/Signal.h
+    Source/SignalProcessing/SignalProcessing.h
 
+    Source/UI/ECGAnalyzeWindow.h
     Source/UI/GoldbergerWindow.h
     Source/UI/IconsMaterialDesign.h
     Source/UI/LiveWindow.h
@@ -56,7 +58,9 @@ set(SOURCES
     Source/SignalProcessing/DigitalFilter.cpp
     Source/SignalProcessing/FFT.cpp
     Source/SignalProcessing/Signal.cpp
+    Source/SignalProcessing/SignalProcessing.cpp
 
+    Source/UI/ECGAnalyzeWindow.cpp
     Source/UI/GoldbergerWindow.cpp
     Source/UI/LiveWindow.cpp
     Source/UI/PlotWindow.cpp

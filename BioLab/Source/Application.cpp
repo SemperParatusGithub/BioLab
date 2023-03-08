@@ -7,6 +7,8 @@
 
 #include "Util/FileUtils.h"
 
+#include "SignalProcessing/DigitalFilter.h"
+
 
 typedef struct
 {
@@ -79,6 +81,7 @@ void Application::Run()
 
 		BeginDockspace();
 
+		m_ECGAnalyzeWindow.Render();
 		m_LiveWindow.Render();
 		m_GoldbergerWindow.Render();
 
@@ -99,7 +102,7 @@ void Application::Run()
 
 void Application::ReadSerialPort()
 {
-	std::cout << "Starting Serial Reader thread" << std::endl;
+	LOG_INFO("Starting Serial Reader thread");
 
 	m_SerialPort.Open(ARDUINO_PORT, 1000000);
 	if (!m_SerialPort.IsConnected())
@@ -107,7 +110,7 @@ void Application::ReadSerialPort()
 	std::this_thread::sleep_for(std::chrono::seconds(2));
 	m_SerialPort.ClearQueue();
 
-	std::cout << "Ready to receive data" << std::endl;
+	LOG_INFO("Ready to receive data");
 
 	auto start = std::chrono::high_resolution_clock::now();
 	std::size_t samplesReceived = 0;
@@ -124,13 +127,20 @@ void Application::ReadSerialPort()
 			{
 				samplesReceived++;
 
-				m_OutputSignalCH1.xValues.push_back(package.sampleIndex / 2000.0f);
-				m_OutputSignalCH2.xValues.push_back(package.sampleIndex / 2000.0f);
-				m_OutputSignalCH3.xValues.push_back(package.sampleIndex / 2000.0f);
-
-				m_OutputSignalCH1.yValues.push_back(package.ch0);
-				m_OutputSignalCH2.yValues.push_back(package.ch1);
-				m_OutputSignalCH3.yValues.push_back(package.ch2);
+				float xVal = package.sampleIndex / 2000.0f;
+				m_RecordingData.CH1.xValues.push_back(xVal);
+				m_RecordingData.CH2.xValues.push_back(xVal);
+				m_RecordingData.CH3.xValues.push_back(xVal);
+				m_RecordingData.aVR.xValues.push_back(xVal);
+				m_RecordingData.aVL.xValues.push_back(xVal);
+				m_RecordingData.aVF.xValues.push_back(xVal);	
+				
+				m_RecordingData.CH1.yValues.push_back(package.ch0);
+				m_RecordingData.CH2.yValues.push_back(package.ch1);
+				m_RecordingData.CH3.yValues.push_back(package.ch2);
+				m_RecordingData.aVR.yValues.push_back(-(package.ch0 + package.ch1) / 2.0f);
+				m_RecordingData.aVL.yValues.push_back(+(package.ch0 - package.ch2) / 2.0f);
+				m_RecordingData.aVF.yValues.push_back(+(package.ch1 + package.ch2) / 2.0f);
 
 				if (idx <= 20)
 				{
@@ -149,7 +159,6 @@ void Application::ReadSerialPort()
 				const std::lock_guard<std::mutex> lock(m_InputQueueMutex);
 				m_InputQueue.push(sample);
 				// Lock guard is released when going out of scope
-
 			}
 		}
 	}
@@ -200,19 +209,28 @@ void Application::SimulateReadSerialPort()
 
 		sampleIndex += 20;
 
+
+		float xVal = sampleIndex / 2000.0f;
+
+		m_RecordingData.CH1.xValues.push_back(xVal);
+		m_RecordingData.CH2.xValues.push_back(xVal);
+		m_RecordingData.CH3.xValues.push_back(xVal);
+		m_RecordingData.aVR.xValues.push_back(xVal);
+		m_RecordingData.aVL.xValues.push_back(xVal);
+		m_RecordingData.aVF.xValues.push_back(xVal);
+
+		m_RecordingData.CH1.yValues.push_back(sample.y);
+		m_RecordingData.CH2.yValues.push_back(sample.z);
+		m_RecordingData.CH3.yValues.push_back(sample.w);
+		m_RecordingData.aVR.yValues.push_back(-(sample.y + sample.z) / 2.0f);
+		m_RecordingData.aVL.yValues.push_back(+(sample.y - sample.w) / 2.0f);
+		m_RecordingData.aVF.yValues.push_back(+(sample.z + sample.w) / 2.0f);
+
 		{
 			const std::lock_guard<std::mutex> lock(m_InputQueueMutex);
 			m_InputQueue.push(sample);
 			// Lock guard is released when going out of scope
 		}
-
-		m_OutputSignalCH1.xValues.push_back(sample.x);
-		m_OutputSignalCH2.xValues.push_back(sample.x);
-		m_OutputSignalCH3.xValues.push_back(sample.x);
-
-		m_OutputSignalCH1.yValues.push_back(sample.y);
-		m_OutputSignalCH2.yValues.push_back(sample.z);
-		m_OutputSignalCH3.yValues.push_back(sample.w);
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
@@ -364,10 +382,12 @@ void Application::BeginDockspace()
 				std::time_t now = std::time(nullptr);  // get current time
 				char buffer[80];
 				std::strftime(buffer, 80, "%Y-%m-%d_%H-%M-%S", std::localtime(&now));
-				std::cout << "Current date and time: " << buffer << std::endl;
-				m_OutputSignalCH1.label = "CH1_" + std::string(buffer);
-				m_OutputSignalCH2.label = "CH2_" + std::string(buffer);
-				m_OutputSignalCH3.label = "CH3_" + std::string(buffer);
+				m_RecordingData.CH1.label = "CH1_" + std::string(buffer);
+				m_RecordingData.CH2.label = "CH2_" + std::string(buffer);
+				m_RecordingData.CH3.label = "CH3_" + std::string(buffer);
+				m_RecordingData.aVR.label = "aVR_" + std::string(buffer);
+				m_RecordingData.aVL.label = "aVL_" + std::string(buffer);
+				m_RecordingData.aVF.label = "aVF_" + std::string(buffer);
 			}
 			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 				ImGui::SetTooltip("Start Recording");
@@ -375,25 +395,41 @@ void Application::BeginDockspace()
 			if (ImGui::Button(ICON_MD_STOP, ImVec2(30, 23)) || elapsed > m_RecordingDuration && m_Recording)
 			{
 				m_Recording = false;
-				m_OutputSignalCH1.id = FileUtils::GetNextSignalID();
-				m_OutputSignalCH2.id = FileUtils::GetNextSignalID();
-				m_OutputSignalCH3.id = FileUtils::GetNextSignalID();
 
-				m_OutputSignalCH1.color = FileUtils::GetNextColor();
-				m_OutputSignalCH2.color = FileUtils::GetNextColor();
-				m_OutputSignalCH3.color = FileUtils::GetNextColor();
+				m_RecordingData.CH1.id = FileUtils::GetNextSignalID();
+				m_RecordingData.CH2.id = FileUtils::GetNextSignalID();
+				m_RecordingData.CH3.id = FileUtils::GetNextSignalID();
+				m_RecordingData.aVR.id = FileUtils::GetNextSignalID();
+				m_RecordingData.aVL.id = FileUtils::GetNextSignalID();
+				m_RecordingData.aVF.id = FileUtils::GetNextSignalID();
 
-				m_LoadedSignals.push_back(m_OutputSignalCH1);
-				m_LoadedSignals.push_back(m_OutputSignalCH2);
-				m_LoadedSignals.push_back(m_OutputSignalCH3);
+				m_RecordingData.CH1.color = FileUtils::GetNextColor();
+				m_RecordingData.CH2.color = FileUtils::GetNextColor();
+				m_RecordingData.CH3.color = FileUtils::GetNextColor();
+				m_RecordingData.aVR.color = FileUtils::GetNextColor();
+				m_RecordingData.aVL.color = FileUtils::GetNextColor();
+				m_RecordingData.aVF.color = FileUtils::GetNextColor();
 
-				FileUtils::SaveCSV(m_OutputSignalCH1, m_OutputSignalCH1.label + ".csv");
-				FileUtils::SaveCSV(m_OutputSignalCH2, m_OutputSignalCH2.label + ".csv");
-				FileUtils::SaveCSV(m_OutputSignalCH3, m_OutputSignalCH3.label + ".csv");
+				m_LoadedSignals.push_back(m_RecordingData.CH1);
+				m_LoadedSignals.push_back(m_RecordingData.CH2);
+				m_LoadedSignals.push_back(m_RecordingData.CH3);
+				m_LoadedSignals.push_back(m_RecordingData.aVR);
+				m_LoadedSignals.push_back(m_RecordingData.aVL);
+				m_LoadedSignals.push_back(m_RecordingData.aVF);
 
-				m_OutputSignalCH1 = Signal();
-				m_OutputSignalCH2 = Signal();
-				m_OutputSignalCH3 = Signal();
+				FileUtils::SaveCSV(m_RecordingData.CH1, m_RecordingData.CH1.label + ".csv");
+				FileUtils::SaveCSV(m_RecordingData.CH2, m_RecordingData.CH2.label + ".csv");
+				FileUtils::SaveCSV(m_RecordingData.CH3, m_RecordingData.CH3.label + ".csv");
+				FileUtils::SaveCSV(m_RecordingData.aVR, m_RecordingData.aVR.label + ".csv");
+				FileUtils::SaveCSV(m_RecordingData.aVL, m_RecordingData.aVL.label + ".csv");
+				FileUtils::SaveCSV(m_RecordingData.aVF, m_RecordingData.aVF.label + ".csv");
+
+				m_RecordingData.CH1 = Signal();
+				m_RecordingData.CH2 = Signal();
+				m_RecordingData.CH3 = Signal();
+				m_RecordingData.aVR = Signal();
+				m_RecordingData.aVL = Signal();
+				m_RecordingData.aVF = Signal();
 			}
 			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 				ImGui::SetTooltip("Stop Recording");
@@ -440,8 +476,9 @@ void Application::BeginDockspace()
 			ImGui::EndChild();
 			ImGui::SameLine();
 			ImGui::BeginChild("Signals", ImVec2(0.0f, width * 0.5f), true);
-			for (auto& signal : m_LoadedSignals)
+			for (int i = 0; i < m_LoadedSignals.size(); i++)
 			{
+				auto& signal = m_LoadedSignals[i];
 				bool sel = false;
 				ImPlot::ItemIcon(signal.color);
 				ImGui::SameLine();
@@ -456,7 +493,31 @@ void Application::BeginDockspace()
 
 					ImGui::EndDragDropSource();
 				}
-
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+				{
+					ImGui::OpenPopup("Signal Options");
+				}
+				if (ImGui::BeginPopup("Signal Options"))
+				{
+					if (ImGui::MenuItem("QRS Detection"))
+					{
+						//m_LoadedSignals.push_back(QRSDetection(signal));
+						m_ECGAnalyzeWindow.ProcessSignal(signal);
+					}
+					if (ImGui::MenuItem(ICON_MD_DELETE"  Delete"))
+					{
+						m_LoadedSignals.erase(m_LoadedSignals.begin() + i);
+					}
+					ImGui::EndPopup();
+				}
+				else if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+				{
+					ImGui::BeginTooltip();
+					ImGui::Text("ID: %d", signal.id);
+					ImGui::Text("Size: %d", signal.xValues.size());
+					ImGui::Text("Stride: %d", signal.stride);
+					ImGui::EndTooltip();
+				}
 
 				ImGui::SameLine();
 				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 0.0f));
