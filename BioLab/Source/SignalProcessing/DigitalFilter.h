@@ -1,6 +1,6 @@
 #pragma once
 #include "Core.h"
-#include "Util/Signal.h"
+#include "SignalProcessing/Signal.h"
 
 #include <tuple>
 

@@ -5,6 +5,7 @@
 
 
 struct GLFWwindow;
+struct ImFont;
 
 class UICore
 {

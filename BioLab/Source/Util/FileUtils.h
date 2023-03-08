@@ -9,7 +9,7 @@
 
 #include <implot.h>
 
-#include "Signal.h"
+#include "SignalProcessing/Signal.h"
 
 
 class FileUtils
@@ -62,6 +62,9 @@ public:
 
 			// LOG_INFO("x: %.2f, y: %.2f", x, y);
 		}
+
+		if (signal.xValues.size() >= 5000)
+			signal.stride = signal.xValues.size() / 5000;
 
 		return signal;
 	}

@@ -37,8 +37,10 @@ Application::Application()
 	m_ReaderThread = std::thread(&Application::SimulateReadSerialPort, this);
 	//m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
 
-	m_PlotWindow.SetName("Plot Window 1");
-	m_PlotWindow2.SetName("Plot Window 2");
+	m_LiveWindow.Close();
+	m_GoldbergerWindow.Close();
+
+	ImGui::GetIO().IniFilename = nullptr;
 }
 
 Application::~Application()
@@ -63,10 +65,10 @@ void Application::Run()
 			while (!m_InputQueue.empty())
 			{
 				auto& sample = m_InputQueue.front();
-				m_LiveValuesX.PushBack(sample.x);
-				m_LiveValuesCH1.PushBack(sample.y);
-				m_LiveValuesCH2.PushBack(sample.z);
-				m_LiveValuesCH3.PushBack(sample.w);
+
+				m_xValues.PushBack(sample.x);
+				m_LiveWindow.AddNewSample(sample);
+				m_GoldbergerWindow.AddNewSample(sample);
 
 				m_NodeEditor->AddNewSample(sample);
 			
@@ -77,13 +79,16 @@ void Application::Run()
 
 		BeginDockspace();
 
-		m_NodeEditor->Render();		
-		m_DefaultPlotWindow.Render();
-		m_PlotWindow.Render();
-		m_PlotWindow2.Render();
+		m_LiveWindow.Render();
+		m_GoldbergerWindow.Render();
+
+		m_NodeEditor->Render();	
+
+		for (auto& plotWindow : m_PlotWindows)
+			plotWindow.Render();
 
 		// ImGui::ShowDemoWindow();
-		ImPlot::ShowDemoWindow();
+		// ImPlot::ShowDemoWindow();
 
 		EndDockspace();
 
@@ -267,7 +272,7 @@ void Application::BeginDockspace()
 		statisticsOpen = true;
 		ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
 		ImGui::Text("Mouse Position: %.2f, %.2f", ImGui::GetMousePos().x, ImGui::GetMousePos().y);
-		ImGui::Text("LiveBuffer Size: %d", m_LiveValuesX.Size());
+		//ImGui::Text("LiveBuffer Size: %d", m_LiveValuesX.Size());
 		ImGui::PopFont();
 	}
 	else {
@@ -497,11 +502,9 @@ void Application::BeginDockspace()
 		ImGui::TextUnformatted("No active Script");
 		if (ImGui::Button("Execute"))
 		{
-			m_LiveValuesX.Clear();
-			m_LiveValuesCH1.Clear();
-			m_LiveValuesCH2.Clear();
-			m_LiveValuesCH3.Clear();
-
+			m_xValues.Clear();
+			m_LiveWindow.ClearBuffers();
+			m_GoldbergerWindow.ClearBuffers();
 			m_NodeEditor->ClearScopeBuffers();
 
 			m_NodeEditor->ExecutePostProcessScript();
@@ -539,10 +542,14 @@ void Application::BeginDockspace()
 	ImGui::PushFont(UICore::GetFont(Font::BigIcons));
 	if (ImGui::Button(ICON_MD_START))
 	{
-		m_LiveValuesX.Clear();
-		m_LiveValuesCH1.Clear();
-		m_LiveValuesCH2.Clear();
-		m_LiveValuesCH3.Clear();
+		m_LiveWindow.Open();
+
+		m_LiveWindow.ClearBuffers();
+		m_GoldbergerWindow.ClearBuffers();
+		m_xValues.Clear();
+
+		for (auto& plotWindow : m_PlotWindows)
+			plotWindow.Clear();
 
 		m_NodeEditor->ClearScopeBuffers();
 		m_NodeEditor->ProhibitDeletions();
@@ -550,9 +557,6 @@ void Application::BeginDockspace()
 		m_SerialPort.ClearQueue();
 		char buf = 1;
 		m_SerialPort.Write(&buf, 1);
-
-		m_PlotWindow.Clear();
-		m_PlotWindow2.Clear();
 
 		m_Reading = true;
 	}
@@ -570,14 +574,25 @@ void Application::BeginDockspace()
 	ImGui::SameLine();
 	if (ImGui::Button(ICON_MD_CLEAR))
 	{
-		m_LiveValuesX.Clear();
-		m_LiveValuesCH1.Clear();
-		m_LiveValuesCH2.Clear();
-		m_LiveValuesCH3.Clear();
+		m_xValues.Clear();
+		m_GoldbergerWindow.ClearBuffers();
+		m_LiveWindow.ClearBuffers();
 
 		m_NodeEditor->ClearScopeBuffers();
 	}
 	ImGui::PopFont();
+
+	ImGui::SameLine();
+	if (ImGui::Button("New Plot Window"))
+	{
+		auto& newWindow = m_PlotWindows.emplace_back();
+		newWindow.SetName("Plot Window " + std::to_string(FileUtils::GetNextSignalID()));
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Goldberger"))
+	{
+		m_GoldbergerWindow.Open();
+	}
 
 	ImGui::EndChild();
 	ImGui::End();

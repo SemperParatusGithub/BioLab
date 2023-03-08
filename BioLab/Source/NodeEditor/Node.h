@@ -4,7 +4,7 @@
 #include <imgui_node_editor.h>
 #include <vector>
 
-#include "Util/Signal.h"
+#include "SignalProcessing/Signal.h"
 
 
 struct Node;

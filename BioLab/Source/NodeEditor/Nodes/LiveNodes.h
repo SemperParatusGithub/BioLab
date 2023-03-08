@@ -2,7 +2,7 @@
 #include "Core.h"
 
 #include "NodeEditor/Node.h"
-#include "Util/LiveBuffer.h"
+#include "Util/Buffer.h"
 
 
 class Source : public Node

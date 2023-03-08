@@ -7,7 +7,7 @@
 #include "Script.h"
 #include "ScriptSerializer.h"
 
-#include "Util/Signal.h"
+#include "SignalProcessing/Signal.h"
 
 struct NodeEditorConfig
 {

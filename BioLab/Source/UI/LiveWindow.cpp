@@ -1,4 +1,4 @@
-#include "DefaultPlotWindow.h"
+#include "LiveWindow.h"
 
 #include <imgui.h>
 #include <implot.h>
@@ -7,29 +7,49 @@
 #include "IconsMaterialDesign.h"
 
 
-DefaultPlotWindow::DefaultPlotWindow()
+LiveWindow::LiveWindow()
 {
 }
-DefaultPlotWindow::~DefaultPlotWindow()
+LiveWindow::~LiveWindow()
 {
 }
 
-void DefaultPlotWindow::Render()
+void LiveWindow::ClearBuffers()
+{
+	m_xValues.Clear();
+
+	m_Channel1.Clear();
+	m_Channel2.Clear();
+	m_Channel3.Clear();
+}
+
+void LiveWindow::AddNewSample(const Vector4f& sample)
+{
+	m_xValues.PushBack(sample.x);
+
+	m_Channel1.PushBack(sample.y);
+	m_Channel2.PushBack(sample.z);
+	m_Channel3.PushBack(sample.w);
+}
+
+void LiveWindow::Render()
 {
 	if (!m_IsOpen)
 		return;
 
-	if (ImGui::Begin(ICON_MD_INSERT_CHART" Default Plot Window", &m_IsOpen, ImGuiWindowFlags_NoCollapse))
+	ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
+
+	if (ImGui::Begin(ICON_MD_INSERT_CHART" Live Window", &m_IsOpen, ImGuiWindowFlags_NoCollapse))
 	{
 		auto* instance = Application::Instance();
-		bool shouldPlot = instance->m_LiveValuesX.Size() != 0;
+		bool shouldPlot = m_xValues.Size() != 0;
 		float xMin = 0.0f; 
 		float xMax = 1.0f;
 
 		if (shouldPlot)
 		{
-			xMin = (float)instance->m_LiveValuesX.Back() - 10.5f;
-			xMax = (float)instance->m_LiveValuesX.Back() + 0.5f;
+			xMin = m_xValues.Back() - 10.5f;
+			xMax = m_xValues.Back() + 0.5f;
 		}
 		
 		if (ImPlot::BeginSubplots("", 3, 1, ImGui::GetContentRegionAvail()))
@@ -40,7 +60,7 @@ void DefaultPlotWindow::Render()
 			if (shouldPlot)
 			{
 				ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-				ImPlot::PlotLine("data", instance->m_LiveValuesX.Data(), instance->m_LiveValuesCH1.Data(), instance->m_LiveValuesX.Size());
+				ImPlot::PlotLine("data", m_xValues.Data(), m_Channel1.Data(), m_xValues.Size());
 			}
 			ImPlot::EndPlot();
 
@@ -50,7 +70,7 @@ void DefaultPlotWindow::Render()
 			if (shouldPlot)
 			{
 				ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-				ImPlot::PlotLine("data", instance->m_LiveValuesX.Data(), instance->m_LiveValuesCH2.Data(), instance->m_LiveValuesX.Size());
+				ImPlot::PlotLine("data", m_xValues.Data(), m_Channel2.Data(), m_xValues.Size());
 			}
 			ImPlot::EndPlot();
 
@@ -60,7 +80,7 @@ void DefaultPlotWindow::Render()
 			if (shouldPlot)
 			{
 				ImPlot::SetNextLineStyle(ImVec4(0, 0, 0, -1), 2.0f);
-				ImPlot::PlotLine("data", instance->m_LiveValuesX.Data(), instance->m_LiveValuesCH3.Data(), instance->m_LiveValuesX.Size());
+				ImPlot::PlotLine("data", m_xValues.Data(), m_Channel3.Data(), m_xValues.Size());
 			}
 			ImPlot::EndPlot();
 		}

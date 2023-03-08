@@ -2,7 +2,7 @@
 #include "Core.h"
 
 #include "NodeEditor/Node.h"
-#include "Util/Signal.h"
+#include "SignalProcessing/Signal.h"
 
 
 class InputSignal : public Node

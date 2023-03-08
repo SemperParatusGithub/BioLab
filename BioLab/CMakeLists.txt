@@ -19,19 +19,20 @@ set(HEADERS
 
     Source/SignalProcessing/DigitalFilter.h
     Source/SignalProcessing/FFT.h
+    Source/SignalProcessing/Signal.h
 
-    Source/UI/DefaultPlotWindow.h
+    Source/UI/GoldbergerWindow.h
     Source/UI/IconsMaterialDesign.h
+    Source/UI/LiveWindow.h
     Source/UI/PlotWindow.h
     Source/UI/UICore.h
     Source/UI/Backends/GLFW_OpenGL.h
     Source/UI/Backends/Win32_DirectX.h
 
+    Source/Util/Buffer.h
     Source/Util/Console.h  
     Source/Util/FileUtils.h
-    Source/Util/LiveBuffer.h
     Source/Util/SerialPort.h
-    Source/Util/Signal.h
 
     External/stb_image/stb_image.h
 )
@@ -54,8 +55,10 @@ set(SOURCES
 
     Source/SignalProcessing/DigitalFilter.cpp
     Source/SignalProcessing/FFT.cpp
+    Source/SignalProcessing/Signal.cpp
 
-    Source/UI/DefaultPlotWindow.cpp
+    Source/UI/GoldbergerWindow.cpp
+    Source/UI/LiveWindow.cpp
     Source/UI/PlotWindow.cpp
     Source/UI/UICore.cpp
     Source/UI/Backends/GLFW_OpenGL.cpp
@@ -63,9 +66,7 @@ set(SOURCES
 
     Source/Util/Console.cpp
     Source/Util/FileUtils.cpp
-    Source/Util/LiveBuffer.cpp
     Source/Util/SerialPort.cpp
-    Source/Util/Signal.cpp
 
     External/stb_image/stb_image.cpp
 )

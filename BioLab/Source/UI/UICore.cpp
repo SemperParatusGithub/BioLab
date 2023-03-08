@@ -127,7 +127,7 @@ void UICore::SetupStyle()
 
 	ImGuiStyle* imguiStyle = &ImGui::GetStyle();
 
-	imguiStyle->WindowMinSize = ImVec2(10, 10);
+	imguiStyle->WindowMinSize = ImVec2(50, 50);
 	imguiStyle->WindowPadding = ImVec2(10, 10);
 	imguiStyle->WindowRounding = 0.0f;
 	imguiStyle->FramePadding = ImVec2(5, 5);
@@ -329,8 +329,8 @@ void UICore::SetDarkColorTheme()
 	colors[ImGuiCol_TabUnfocused] = ImVec4(0.20f, 0.20f, 0.22f, 0.39f);
 	colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.44f, 0.44f, 0.47f, 0.39f);
 
+	colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.09f, 0.09f, 0.10f, 1.00f);
 	colors[ImGuiCol_DockingPreview] = ImVec4(0.44f, 0.44f, 0.47f, 1.00f);
-	colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
 
 	colors[ImGuiCol_DragDropTarget] = ImVec4(0.91f, 0.62f, 0.00f, 1.00f);
 	colors[ImGuiCol_NavHighlight] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);

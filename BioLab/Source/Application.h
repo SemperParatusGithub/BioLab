@@ -11,12 +11,13 @@
 
 
 #include "Util/SerialPort.h"
-#include "Util/LiveBuffer.h"
+#include "Util/Buffer.h"
 #include "Util/FileUtils.h"
-#include "Util/Signal.h"
+#include "SignalProcessing/Signal.h"
 
 #include "UI/PlotWindow.h"
-#include "UI/DefaultPlotWindow.h"
+#include "UI/LiveWindow.h"
+#include "UI/GoldbergerWindow.h"
 
 #include "NodeEditor/NodeEditor.h"
 
@@ -68,7 +69,8 @@ private:
 private:
 	friend class NodeEditor;
 	friend class PlotWindow;
-	friend class DefaultPlotWindow;
+	friend class LiveWindow;
+	friend class GoldbergerWindow;
 
 	static Application* s_Instance;
 
@@ -86,9 +88,6 @@ private:
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_RecordingStart;
 	float m_RecordingDuration = 10.0f;
 
-	LiveBuffer<float> m_LiveValuesX;
-	LiveBuffer<float> m_LiveValuesCH1, m_LiveValuesCH2, m_LiveValuesCH3;
-
 	std::unique_ptr<NodeEditor> m_NodeEditor;
 
 	std::vector<int> m_ActiveScopes;
@@ -98,7 +97,9 @@ private:
 
 	std::vector<Signal> m_LoadedSignals;
 
-	PlotWindow m_PlotWindow;
-	PlotWindow m_PlotWindow2;
-	DefaultPlotWindow m_DefaultPlotWindow;
+	std::vector<PlotWindow> m_PlotWindows;
+	LiveWindow m_LiveWindow;
+	GoldbergerWindow m_GoldbergerWindow;
+
+	LiveBuffer<float> m_xValues;
 };

@@ -18,14 +18,16 @@ void PlotWindow::Render()
 	if (!m_IsOpen)
 		return;
 
+	ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
+
 	if (ImGui::Begin(m_Name.c_str(), &m_IsOpen, ImGuiWindowFlags_NoCollapse))
 	{
 		auto* instance = Application::Instance();
-		if (instance->m_Reading && instance->m_LiveValuesX.Size() != 0)
+		if (instance->m_Reading && instance->m_xValues.Size() != 0)
 		{
-			bool shouldPlot = instance->m_LiveValuesX.Size() != 0;
-			float xMin = (float)instance->m_LiveValuesX.Back() - 10.5f;
-			float xMax = (float)instance->m_LiveValuesX.Back() + 0.5f;
+			bool shouldPlot = instance->m_xValues.Size() != 0;
+			float xMin = (float)instance->m_xValues.Back() - 10.5f;
+			float xMax = (float)instance->m_xValues.Back() + 0.5f;
 			ImPlot::SetNextAxisLimits(ImAxis_X1, xMin, xMax, ImGuiCond_Always);
 		}
 
@@ -68,6 +70,7 @@ void PlotWindow::Render()
 				ImGui::ColorEdit3("Color", (float*)&signal->color);
 				ImGui::Checkbox("Markers", &signal->markers);
 				ImGui::Checkbox("Shaded", &signal->shaded);
+				ImGui::SliderInt("Stride", &signal->stride, 1, 25);
 
 				ImPlot::EndLegendPopup();
 			}
@@ -77,14 +80,13 @@ void PlotWindow::Render()
 			auto* scope = instance->GetScopeByID(id);
 			if (scope == nullptr)
 				continue;
-
+		
 			if (scope->Samples.Size() != 0)
 			{
 				ImPlot::PlotLine(scope->name.c_str(),
-					instance->m_LiveValuesX.Data(), scope->Samples.Data(), scope->Samples.Size());
+					instance->m_xValues.Data(), scope->Samples.Data(), scope->Samples.Size());
 			}
 		}
-
 		ImPlot::EndPlot();
 	}
 	ImGui::End();
