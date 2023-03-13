@@ -3,6 +3,8 @@
 #include "Util/FileUtils.h"
 #include "Application.h"
 
+#include "SignalProcessing/SignalProcessing.h"
+
 
 InputSignal::InputSignal(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size)
 {
@@ -77,4 +79,33 @@ Signal OutputSignal::ProcessSignal(const Signal& signal)
 	m_Signal.color = FileUtils::GetNextColor();
 
 	return signal;
+}
+
+
+FourierTransform::FourierTransform(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size)
+{
+	this->name = nodeName;
+	this->id = nodeID;
+	this->position = position;
+	this->size = size;
+
+	this->type = Node::Type::FourierTransform;
+}
+FourierTransform::~FourierTransform()
+{
+}
+
+void FourierTransform::Render()
+{
+	ImGui::TextUnformatted("Discrete Fouriere\nTransform");
+}
+Signal FourierTransform::ProcessSignal(const Signal& signal)
+{
+	Signal returnSignal = signal;
+
+	returnSignal.yValues = SignalProcessing::DFT(signal.yValues);
+	for (int i = 0; i < returnSignal.xValues.size(); i++)
+		returnSignal.xValues[i] = i;
+
+	return returnSignal;
 }

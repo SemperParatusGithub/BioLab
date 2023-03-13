@@ -50,6 +50,7 @@ public:
 		// Post processing nodes
 		InputSignal,
 		OutputSignal,
+		FourierTransform,
 
 		Filter,
 		Gain,

@@ -20,6 +20,7 @@ ECGAnalyzeWindow::~ECGAnalyzeWindow()
 void ECGAnalyzeWindow::ProcessSignal(Signal signal)
 {
 	Clear();
+	Open();
 
 	m_ECGData.ecgSignal = signal;
 
@@ -67,7 +68,7 @@ void ECGAnalyzeWindow::ProcessSignal(Signal signal)
 	for (auto& val : returnSignal.yValues)
 		val /= maxElem;
 
-	float threshold = 0.15f;
+	float threshold = 0.3f;
 	for (auto& val : returnSignal.yValues)
 		val = val > threshold ? 1.0f : 0.0f;
 
@@ -99,16 +100,28 @@ void ECGAnalyzeWindow::ProcessSignal(Signal signal)
 		}
 	}
 
-	for (int i = 0; i < peakEnds.size(); i++)
+	// R-Peaks
+	for (int i = 1; i < peakEnds.size(); i++)
 	{
 		int startIndex = peakBegins[i];
 		int endIndex = peakEnds[i];
 
-		auto& maxElem = std::max_element(signal.yValues.begin() + startIndex, signal.yValues.begin() + endIndex);
-		int sampleIndex = std::distance(signal.yValues.begin(), maxElem);
+		auto& rLocation = std::max_element(signal.yValues.begin() + startIndex, signal.yValues.begin() + endIndex);
+		auto& qLocation = std::min_element(signal.yValues.begin() + startIndex, rLocation);
+		auto& sLocation = std::min_element(rLocation, signal.yValues.begin() + endIndex);
 
-		m_ECGData.rx.push_back(signal.xValues[sampleIndex]);
-		m_ECGData.ry.push_back(signal.yValues[sampleIndex]);
+		int qIndex = std::distance(signal.yValues.begin(), qLocation);
+		int rIndex = std::distance(signal.yValues.begin(), rLocation);
+		int sIndex = std::distance(signal.yValues.begin(), sLocation);
+
+		m_ECGData.qx.push_back(signal.xValues[qIndex]);
+		m_ECGData.qy.push_back(signal.yValues[qIndex]);
+
+		m_ECGData.rx.push_back(signal.xValues[rIndex]);
+		m_ECGData.ry.push_back(signal.yValues[rIndex]);
+
+		m_ECGData.sx.push_back(signal.xValues[sIndex]);
+		m_ECGData.sy.push_back(signal.yValues[sIndex]);
 	}
 
 	m_ECGData.avgRR = (m_ECGData.rx.back() - m_ECGData.rx.front()) / m_ECGData.rx.size();
@@ -149,7 +162,9 @@ void ECGAnalyzeWindow::Render()
 
 		if (m_ECGData.rx.size() != 0)
 		{
+			ImPlot::PlotScatter("Q", m_ECGData.qx.data(), m_ECGData.qy.data(), m_ECGData.qx.size());
 			ImPlot::PlotScatter("R", m_ECGData.rx.data(), m_ECGData.ry.data(), m_ECGData.rx.size());
+			ImPlot::PlotScatter("S", m_ECGData.sx.data(), m_ECGData.sy.data(), m_ECGData.sx.size());
 		}
 
 		ImPlot::EndPlot();

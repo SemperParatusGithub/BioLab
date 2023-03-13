@@ -35,6 +35,7 @@ public:
 	void Clear();
 
 	void Close() { m_IsOpen = false; }
+	void Open() { m_IsOpen = true; }
 	bool IsOpen() const { return m_IsOpen; }
 
 private:

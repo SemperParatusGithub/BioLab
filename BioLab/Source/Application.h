@@ -8,6 +8,7 @@
 #include <atomic>
 #include <mutex>
 #include <chrono>
+#include <ctime>
 
 
 #include "Util/SerialPort.h"
@@ -26,6 +27,17 @@
 
 
 #define ARDUINO_PORT "\\\\.\\COM3"
+
+static std::vector<std::string> s_SerialPorts = {
+	"\\\\.\\COM2",
+	"\\\\.\\COM3",
+	"\\\\.\\COM4",
+	"\\\\.\\COM5",
+	"\\\\.\\COM6",
+	"\\\\.\\COM7",
+	"\\\\.\\COM8",
+	"\\\\.\\COM9"
+};
 
 
 class Application
@@ -63,6 +75,8 @@ public:
 private:
 	void ReadSerialPort();
 	void SimulateReadSerialPort();
+
+	void SaveRecordingData();
 
 	void BeginDockspace();
 	void EndDockspace();

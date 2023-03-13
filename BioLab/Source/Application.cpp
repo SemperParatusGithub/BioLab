@@ -9,6 +9,9 @@
 
 #include "SignalProcessing/DigitalFilter.h"
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui_internal.h>
+
 
 typedef struct
 {
@@ -17,6 +20,17 @@ typedef struct
 } DataPackage;
 
 
+static bool Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f)
+{
+	using namespace ImGui;
+	ImGuiContext& g = *GImGui;
+	ImGuiWindow* window = g.CurrentWindow;
+	ImGuiID id = window->GetID("##Splitter");
+	ImRect bb;
+	bb.Min = window->DC.CursorPos + (split_vertically ? ImVec2(*size1, 0.0f) : ImVec2(0.0f, *size1));
+	bb.Max = bb.Min + CalcItemSize(split_vertically ? ImVec2(thickness, splitter_long_axis_size) : ImVec2(splitter_long_axis_size, thickness), 0.0f, 0.0f);
+	return SplitterBehavior(bb, id, split_vertically ? ImGuiAxis_X : ImGuiAxis_Y, size1, size2, min_size1, min_size2, 0.0f);
+}
 
 Application* Application::s_Instance = nullptr;
 
@@ -34,13 +48,15 @@ Application::Application()
 
 	m_NodeEditor = std::make_unique<NodeEditor>();
 	m_NodeEditor->SetupStyle();
+	//m_NodeEditor->SetLightColorTheme();
 	m_NodeEditor->SetDarkColorTheme();
 
 	m_ReaderThread = std::thread(&Application::SimulateReadSerialPort, this);
-	//m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
+	// m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
 
 	m_LiveWindow.Close();
 	m_GoldbergerWindow.Close();
+	m_ECGAnalyzeWindow.Close();
 
 	ImGui::GetIO().IniFilename = nullptr;
 }
@@ -104,10 +120,20 @@ void Application::ReadSerialPort()
 {
 	LOG_INFO("Starting Serial Reader thread");
 
-	m_SerialPort.Open(ARDUINO_PORT, 1000000);
-	if (!m_SerialPort.IsConnected())
-		return;
-	std::this_thread::sleep_for(std::chrono::seconds(2));
+	while (!m_SerialPort.IsConnected() && m_SerialThreadRunning)
+	{
+		for (auto& serialPort : s_SerialPorts)
+		{
+			m_SerialPort.Open(serialPort.c_str(), 1000000);
+			if (m_SerialPort.IsConnected())
+			{
+				LOG_INFO("Connected to Serial Port: %s", serialPort.c_str());
+				break;
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		}
+	}
+
 	m_SerialPort.ClearQueue();
 
 	LOG_INFO("Ready to receive data");
@@ -243,31 +269,62 @@ void Application::SimulateReadSerialPort()
 	std::cout << "samples/s: " << samplesReceived / duration_s << std::endl;
 }
 
+void Application::SaveRecordingData()
+{
+	m_LoadedSignals.push_back(m_RecordingData.CH1);
+	m_LoadedSignals.push_back(m_RecordingData.CH2);
+	m_LoadedSignals.push_back(m_RecordingData.CH3);
+	m_LoadedSignals.push_back(m_RecordingData.aVR);
+	m_LoadedSignals.push_back(m_RecordingData.aVL);
+	m_LoadedSignals.push_back(m_RecordingData.aVF);
+
+	std::thread recordingThread([&]()
+		{
+			LOG_INFO("Saving recording data on thread: %d", std::this_thread::get_id());
+			std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+			FileUtils::SaveCSV(m_RecordingData.CH1, m_RecordingData.CH1.label + ".csv");
+			FileUtils::SaveCSV(m_RecordingData.CH2, m_RecordingData.CH2.label + ".csv");
+			FileUtils::SaveCSV(m_RecordingData.CH3, m_RecordingData.CH3.label + ".csv");
+			FileUtils::SaveCSV(m_RecordingData.aVR, m_RecordingData.aVR.label + ".csv");
+			FileUtils::SaveCSV(m_RecordingData.aVL, m_RecordingData.aVL.label + ".csv");
+			FileUtils::SaveCSV(m_RecordingData.aVF, m_RecordingData.aVF.label + ".csv");
+
+			m_RecordingData.CH1 = Signal();
+			m_RecordingData.CH2 = Signal();
+			m_RecordingData.CH3 = Signal();
+			m_RecordingData.aVR = Signal();
+			m_RecordingData.aVL = Signal();
+			m_RecordingData.aVF = Signal();
+
+			LOG_INFO("Saving recording data on thread FINISHED: %d", std::this_thread::get_id());
+		});
+
+	recordingThread.detach();
+}
+
 void Application::BeginDockspace()
 {
-	ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+	ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse  |
+		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
 	ImGuiViewport *viewport = ImGui::GetMainViewport();
 
 	ImVec2 sideBarPos = viewport->Pos;
 	ImVec2 sideBarSize = ImVec2 { 1.0f / 5.0f * viewport->Size.x, viewport->Size.y };
 
-	ImVec2 menuBarPos = ImVec2 { viewport->Pos.x + sideBarSize.x, viewport->Pos.y };
-	ImVec2 menuBarSize = ImVec2 { 4.0f / 5.0f * viewport->Size.x, 55.0f };
-
-	ImVec2 dockspacePos = ImVec2 { viewport->Pos.x + sideBarSize.x, viewport->Pos.y + menuBarSize.y };
-	ImVec2 dockspaceSize = ImVec2 { 4.0f / 5.0f * viewport->Size.x, viewport->Size.y - menuBarSize.y };
-
 	// Left window
 	ImGui::SetNextWindowPos(sideBarPos);
-	ImGui::SetNextWindowSize(sideBarSize);
+	ImGui::SetNextWindowSize(sideBarSize, ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowViewport(viewport->ID);
+	ImGui::SetNextWindowSizeConstraints(ImVec2(100, -1.f), ImVec2(500, -1.f));
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 5.0f));
 	ImGui::Begin("LeftBar", 0, windowFlags);
+	ImGui::SetWindowSize(ImVec2(ImGui::GetWindowSize().x, sideBarSize.y));
+	sideBarSize.x = ImGui::GetWindowSize().x;
 	ImGui::BeginChild("Child", ImVec2(-1, -1), true);
 
 	ImGui::Spacing();
@@ -346,13 +403,13 @@ void Application::BeginDockspace()
 			ImGui::SameLine(ImGui::GetContentRegionAvail().x - 93.0f);
 
 			if (ImGui::Button(ICON_MD_SAVE, ImVec2(30, 23)))
-				m_NodeEditor->SaveLiveScript(UICore::SaveFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+				m_NodeEditor->SaveLiveScript(UICore::SaveFileDialog("Script(*.script)\0*.script\0"));
 			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 				ImGui::SetTooltip("Save Script");
 			ImGui::SameLine();
 
 			if (ImGui::Button(ICON_MD_FILE_OPEN, ImVec2(30, 23)))
-				m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+				m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Script(*.script)\0*.script\0"));
 			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 				ImGui::SetTooltip("Load Script");
 			ImGui::SameLine();
@@ -382,12 +439,13 @@ void Application::BeginDockspace()
 				std::time_t now = std::time(nullptr);  // get current time
 				char buffer[80];
 				std::strftime(buffer, 80, "%Y-%m-%d_%H-%M-%S", std::localtime(&now));
-				m_RecordingData.CH1.label = "CH1_" + std::string(buffer);
-				m_RecordingData.CH2.label = "CH2_" + std::string(buffer);
-				m_RecordingData.CH3.label = "CH3_" + std::string(buffer);
-				m_RecordingData.aVR.label = "aVR_" + std::string(buffer);
-				m_RecordingData.aVL.label = "aVL_" + std::string(buffer);
-				m_RecordingData.aVF.label = "aVF_" + std::string(buffer);
+
+				m_RecordingData.CH1 = FileUtils::CreateSignal("CH1_" + std::string(buffer));
+				m_RecordingData.CH2 = FileUtils::CreateSignal("CH2_" + std::string(buffer));
+				m_RecordingData.CH3 = FileUtils::CreateSignal("CH3_" + std::string(buffer));
+				m_RecordingData.aVR = FileUtils::CreateSignal("aVR_" + std::string(buffer));
+				m_RecordingData.aVL = FileUtils::CreateSignal("aVL_" + std::string(buffer));
+				m_RecordingData.aVF = FileUtils::CreateSignal("aVF_" + std::string(buffer));
 			}
 			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 				ImGui::SetTooltip("Start Recording");
@@ -396,40 +454,7 @@ void Application::BeginDockspace()
 			{
 				m_Recording = false;
 
-				m_RecordingData.CH1.id = FileUtils::GetNextSignalID();
-				m_RecordingData.CH2.id = FileUtils::GetNextSignalID();
-				m_RecordingData.CH3.id = FileUtils::GetNextSignalID();
-				m_RecordingData.aVR.id = FileUtils::GetNextSignalID();
-				m_RecordingData.aVL.id = FileUtils::GetNextSignalID();
-				m_RecordingData.aVF.id = FileUtils::GetNextSignalID();
-
-				m_RecordingData.CH1.color = FileUtils::GetNextColor();
-				m_RecordingData.CH2.color = FileUtils::GetNextColor();
-				m_RecordingData.CH3.color = FileUtils::GetNextColor();
-				m_RecordingData.aVR.color = FileUtils::GetNextColor();
-				m_RecordingData.aVL.color = FileUtils::GetNextColor();
-				m_RecordingData.aVF.color = FileUtils::GetNextColor();
-
-				m_LoadedSignals.push_back(m_RecordingData.CH1);
-				m_LoadedSignals.push_back(m_RecordingData.CH2);
-				m_LoadedSignals.push_back(m_RecordingData.CH3);
-				m_LoadedSignals.push_back(m_RecordingData.aVR);
-				m_LoadedSignals.push_back(m_RecordingData.aVL);
-				m_LoadedSignals.push_back(m_RecordingData.aVF);
-
-				FileUtils::SaveCSV(m_RecordingData.CH1, m_RecordingData.CH1.label + ".csv");
-				FileUtils::SaveCSV(m_RecordingData.CH2, m_RecordingData.CH2.label + ".csv");
-				FileUtils::SaveCSV(m_RecordingData.CH3, m_RecordingData.CH3.label + ".csv");
-				FileUtils::SaveCSV(m_RecordingData.aVR, m_RecordingData.aVR.label + ".csv");
-				FileUtils::SaveCSV(m_RecordingData.aVL, m_RecordingData.aVL.label + ".csv");
-				FileUtils::SaveCSV(m_RecordingData.aVF, m_RecordingData.aVF.label + ".csv");
-
-				m_RecordingData.CH1 = Signal();
-				m_RecordingData.CH2 = Signal();
-				m_RecordingData.CH3 = Signal();
-				m_RecordingData.aVR = Signal();
-				m_RecordingData.aVL = Signal();
-				m_RecordingData.aVF = Signal();
+				SaveRecordingData();
 			}
 			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 				ImGui::SetTooltip("Stop Recording");
@@ -461,13 +486,14 @@ void Application::BeginDockspace()
 		ImGui::PopFont();
 		ImGui::Separator();
 
-		if (ImGui::BeginChild("LoadedSignals + Options", ImVec2(width * 0.25f, width * 0.5f)))
+		if (ImGui::BeginChild("LoadedSignals + Options", ImVec2(65.0f, 180.0f)))
 		{
 			if (ImGui::Button("Load", ImVec2(-1, 0)))
 			{
 				std::string path = UICore::OpenFileDialog("Data file (*.csv)");
 				auto& signal = FileUtils::LoadCSV(path);
-				m_LoadedSignals.push_back(signal);
+				if(signal.id != -1)
+					m_LoadedSignals.push_back(signal);
 			}
 			if (ImGui::Button("Clear", ImVec2(-1, 0)))
 			{
@@ -475,7 +501,7 @@ void Application::BeginDockspace()
 			}
 			ImGui::EndChild();
 			ImGui::SameLine();
-			ImGui::BeginChild("Signals", ImVec2(0.0f, width * 0.5f), true);
+			ImGui::BeginChild("Signals", ImVec2(0.0f, 180.0f), true);
 			for (int i = 0; i < m_LoadedSignals.size(); i++)
 			{
 				auto& signal = m_LoadedSignals[i];
@@ -493,11 +519,12 @@ void Application::BeginDockspace()
 
 					ImGui::EndDragDropSource();
 				}
+				std::string openPopupName = "Options##" + std::to_string(signal.id);
 				if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
 				{
-					ImGui::OpenPopup("Signal Options");
+					ImGui::OpenPopup(openPopupName.c_str());
 				}
-				if (ImGui::BeginPopup("Signal Options"))
+				if (ImGui::BeginPopup(openPopupName.c_str()))
 				{
 					if (ImGui::MenuItem("QRS Detection"))
 					{
@@ -543,13 +570,13 @@ void Application::BeginDockspace()
 		ImGui::SameLine(ImGui::GetContentRegionAvail().x - 93.0f);
 
 		if (ImGui::Button(ICON_MD_SAVE, ImVec2(30, 23)))
-			m_NodeEditor->SaveLiveScript(UICore::SaveFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+			m_NodeEditor->SaveLiveScript(UICore::SaveFileDialog("Script(*.script)\0*.script\0"));
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 			ImGui::SetTooltip("Save Script");
 		ImGui::SameLine();
 
 		if (ImGui::Button(ICON_MD_FILE_OPEN, ImVec2(30, 23)))
-			m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Live Script(*.livescript)\0*.livescript\0"));
+			m_NodeEditor->LoadLiveScript(UICore::OpenFileDialog("Script(*.script)\0*.script\0"));
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 			ImGui::SetTooltip("Load Script");
 		ImGui::SameLine();
@@ -584,6 +611,13 @@ void Application::BeginDockspace()
 	ImGui::End();
 	//ImGui::PopStyleColor();
 	ImGui::PopStyleVar(3);
+
+
+	ImVec2 menuBarPos = ImVec2{ viewport->Pos.x + sideBarSize.x, viewport->Pos.y };
+	ImVec2 menuBarSize = ImVec2{ viewport->Size.x - sideBarSize.x, 55.0f };
+
+	ImVec2 dockspacePos = ImVec2{ viewport->Pos.x + sideBarSize.x, viewport->Pos.y + menuBarSize.y };
+	ImVec2 dockspaceSize = ImVec2{ viewport->Size.x - sideBarSize.x, viewport->Size.y - menuBarSize.y };
 
 	// MenuBar
 	ImGui::SetNextWindowPos(menuBarPos);
@@ -641,19 +675,19 @@ void Application::BeginDockspace()
 
 		m_NodeEditor->ClearScopeBuffers();
 	}
-	ImGui::PopFont();
 
 	ImGui::SameLine();
-	if (ImGui::Button("New Plot Window"))
+	if (ImGui::Button(ICON_MD_ADD_TO_QUEUE))
 	{
 		auto& newWindow = m_PlotWindows.emplace_back();
 		newWindow.SetName("Plot Window " + std::to_string(FileUtils::GetNextSignalID()));
 	}
 	ImGui::SameLine();
-	if (ImGui::Button("Goldberger"))
+	if (ImGui::Button(ICON_MD_PERSONAL_VIDEO))
 	{
 		m_GoldbergerWindow.Open();
 	}
+	ImGui::PopFont();
 
 	ImGui::EndChild();
 	ImGui::End();

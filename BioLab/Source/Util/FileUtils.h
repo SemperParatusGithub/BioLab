@@ -34,6 +34,16 @@ public:
 	}
 
 public:
+	static Signal CreateSignal(const std::string& name)
+	{
+		Signal signal;
+		signal.id = GetNextSignalID();
+		signal.color = GetNextColor();
+		signal.label = name;
+
+		return signal;
+	}
+
 	static Signal LoadCSV(const std::string& filepath)
 	{
 		if (filepath.empty())
@@ -49,22 +59,29 @@ public:
 
 		LOG_INFO("Loading CSV file: %s", filepath.c_str());		
 
-		std::ifstream is;
-		is.open(filepath);
-		std::string line;
-		while (std::getline(is, line))
-		{
-			auto comma = line.find(',');
-			float x = std::stof(line.substr(0, comma));
-			float y = std::stof(line.substr(comma + 1, line.size() - comma + 1));
-			signal.xValues.push_back(x);
-			signal.yValues.push_back(y);
+		try {
+			std::ifstream is;
+			is.open(filepath);
+			std::string line;
+			while (std::getline(is, line))
+			{
+				auto comma = line.find(',');
+				float x = std::stof(line.substr(0, comma));
+				float y = std::stof(line.substr(comma + 1, line.size() - comma + 1));
+				signal.xValues.push_back(x);
+				signal.yValues.push_back(y);
 
-			// LOG_INFO("x: %.2f, y: %.2f", x, y);
+				// LOG_INFO("x: %.2f, y: %.2f", x, y);
+			}
+
+			if (signal.xValues.size() >= 5000)
+				signal.stride = signal.xValues.size() / 5000;
 		}
-
-		if (signal.xValues.size() >= 5000)
-			signal.stride = signal.xValues.size() / 5000;
+		catch (...)
+		{
+			LOG_ERROR("Failed to load CSV file: %s", filepath.c_str());
+			return Signal();
+		}
 
 		return signal;
 	}

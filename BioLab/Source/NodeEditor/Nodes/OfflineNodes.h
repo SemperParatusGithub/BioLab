@@ -36,3 +36,16 @@ private:
 	Signal m_Signal;
 	char m_SignalName[128] = "OutputSigal";
 };
+
+
+class FourierTransform : public Node
+{
+public:
+	FourierTransform(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size);
+	~FourierTransform();
+
+	virtual void Render() override;
+	virtual Signal ProcessSignal(const Signal& signal) override;
+
+private:
+};

@@ -48,7 +48,7 @@ void NodeEditor::AddNewSample(const Vector4f& sample)
 		ProcessNodeWithSample(m_ActiveScript.m_Channel3Node, sample.w);
 	}
 	else {
-		LOG_INFO("Warning: No LiveScript selected");
+		//LOG_INFO("Warning: No LiveScript selected");
 	}
 }
 void NodeEditor::ClearScopeBuffers()
@@ -110,6 +110,7 @@ void NodeEditor::Render()
 		return;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5, 5));
+	ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin(ICON_MD_INSERT_CHART" Node Editor", &m_IsOpen, ImGuiWindowFlags_NoCollapse))
 	{
 		ax::NodeEditor::SetCurrentEditor(m_EditorContext);
@@ -165,7 +166,11 @@ void NodeEditor::Render()
 				if (ImGui::MenuItem("Absolute"))
 					m_ActiveScript.CreateNode("Absolute", Node::Type::Absolute, { 500.0f, 500.0f }, { 200.0f, 100.0f });		
 				if (ImGui::MenuItem("Average"))
-					m_ActiveScript.CreateNode("Average", Node::Type::Average, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+					m_ActiveScript.CreateNode("Average", Node::Type::Average, { 500.0f, 500.0f }, { 200.0f, 100.0f });	
+				
+				if (m_ActiveScript.m_Type == Script::Type::PostProcessScript)
+					if (ImGui::MenuItem("DFT"))
+						m_ActiveScript.CreateNode("DFT", Node::Type::FourierTransform, { 500.0f, 500.0f }, { 200.0f, 100.0f });
 
 				ImGui::EndPopup();
 			}
