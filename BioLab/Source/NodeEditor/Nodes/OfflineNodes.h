@@ -48,4 +48,27 @@ public:
 	virtual Signal ProcessSignal(const Signal& signal) override;
 
 private:
+	int m_fs = 2000;
+};
+
+
+class RemoveDC : public Node
+{
+public:
+	RemoveDC(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size);
+	~RemoveDC();
+
+	virtual void Render() override;
+	virtual Signal ProcessSignal(const Signal& signal) override;
+};
+
+
+class Normalize : public Node
+{
+public:
+	Normalize(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size);
+	~Normalize();
+
+	virtual void Render() override;
+	virtual Signal ProcessSignal(const Signal& signal) override;
 };

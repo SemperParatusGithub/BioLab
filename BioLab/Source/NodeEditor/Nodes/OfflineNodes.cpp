@@ -5,6 +5,8 @@
 
 #include "SignalProcessing/SignalProcessing.h"
 
+#include <numeric>
+
 
 InputSignal::InputSignal(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size)
 {
@@ -27,9 +29,11 @@ void InputSignal::Render()
 	{
 		ImPlot::ItemIcon(signal->color); ImGui::SameLine();
 		ImGui::TextUnformatted(signal->label.c_str());
+		if (ImGui::Button(ICON_MD_DELETE, ImVec2(30, 23)))
+			m_SignalID = -1;
 	}
 	else {
-		ImGui::Button("target");
+		ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, 35));
 		if (ImGui::BeginDragDropTarget())
 		{
 			const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_SIGNAL");
@@ -97,15 +101,81 @@ FourierTransform::~FourierTransform()
 
 void FourierTransform::Render()
 {
-	ImGui::TextUnformatted("Discrete Fouriere\nTransform");
+	ImGui::TextUnformatted("FFT");
+
+	ImGui::SetNextItemWidth(-1);
+	ImGui::DragInt("fs", &m_fs);
 }
 Signal FourierTransform::ProcessSignal(const Signal& signal)
 {
 	Signal returnSignal = signal;
 
-	returnSignal.yValues = SignalProcessing::DFT(signal.yValues);
+	//returnSignal.yValues = SignalProcessing::DFT(signal.yValues);
+	returnSignal.yValues = SignalProcessing::FFT(signal.yValues);
+	int fs = 2000;
 	for (int i = 0; i < returnSignal.xValues.size(); i++)
-		returnSignal.xValues[i] = i;
+	{
+		int s = returnSignal.xValues.size();
+		double val = (double)i / double(s) * fs;
+		returnSignal.xValues[i] = val;
+	}
+
+	return returnSignal;
+}
+
+
+RemoveDC::RemoveDC(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size)
+{
+	this->name = nodeName;
+	this->id = nodeID;
+	this->position = position;
+	this->size = size;
+
+	this->type = Node::Type::RemoveDC;
+}
+RemoveDC::~RemoveDC()
+{
+}
+void RemoveDC::Render()
+{
+}
+Signal RemoveDC::ProcessSignal(const Signal& signal)
+{
+	Signal returnSignal = signal;
+
+	float average = std::accumulate(signal.yValues.begin(), signal.yValues.end(), 0.0) / signal.yValues.size();
+
+	for (auto& val : returnSignal.yValues)
+		val -= average;
+
+	return returnSignal;
+}
+
+
+Normalize::Normalize(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size)
+{
+	this->name = nodeName;
+	this->id = nodeID;
+	this->position = position;
+	this->size = size;
+
+	this->type = Node::Type::Normalize;
+}
+Normalize::~Normalize()
+{
+}
+void Normalize::Render()
+{
+}
+Signal Normalize::ProcessSignal(const Signal& signal)
+{
+	Signal returnSignal = signal;
+
+	float min = *std::min_element(signal.yValues.begin(), signal.yValues.end());
+	float max = *std::max_element(signal.yValues.begin(), signal.yValues.end());
+
+	for (auto& val : returnSignal.yValues)
+		val = (val - min) / (max - min);
 
 	return returnSignal;
 }

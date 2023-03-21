@@ -169,8 +169,14 @@ void NodeEditor::Render()
 					m_ActiveScript.CreateNode("Average", Node::Type::Average, { 500.0f, 500.0f }, { 200.0f, 100.0f });	
 				
 				if (m_ActiveScript.m_Type == Script::Type::PostProcessScript)
-					if (ImGui::MenuItem("DFT"))
-						m_ActiveScript.CreateNode("DFT", Node::Type::FourierTransform, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+				{
+					if (ImGui::MenuItem("FFT"))
+						m_ActiveScript.CreateNode("FFT", Node::Type::FourierTransform, { 500.0f, 500.0f }, { 200.0f, 100.0f });	
+					if (ImGui::MenuItem("Normalize"))
+						m_ActiveScript.CreateNode("Normalize", Node::Type::Normalize, { 500.0f, 500.0f }, { 200.0f, 100.0f });	
+					if (ImGui::MenuItem("Remove DC"))
+						m_ActiveScript.CreateNode("Remove DC", Node::Type::RemoveDC, { 500.0f, 500.0f }, { 200.0f, 100.0f });
+				}
 
 				ImGui::EndPopup();
 			}

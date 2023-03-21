@@ -6,6 +6,8 @@
 
 #include "SignalProcessing/Signal.h"
 
+#include "UI/IconsMaterialDesign.h"
+
 
 struct Node;
 
@@ -51,6 +53,8 @@ public:
 		InputSignal,
 		OutputSignal,
 		FourierTransform,
+		Normalize,
+		RemoveDC,
 
 		Filter,
 		Gain,

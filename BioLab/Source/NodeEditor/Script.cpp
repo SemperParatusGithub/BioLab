@@ -274,6 +274,22 @@ Node* Script::CreateNode(const std::string& name, Node::Type type, const Vector2
 			node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
 			node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
 			break;
+		}	
+		case Node::Type::Normalize:
+		{
+			m_Nodes.emplace_back(new Normalize(GetNextNodeID(), name, position, size));
+			node = m_Nodes.back();
+			node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
+			node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
+			break;
+		}	
+		case Node::Type::RemoveDC:
+		{
+			m_Nodes.emplace_back(new RemoveDC(GetNextNodeID(), name, position, size));
+			node = m_Nodes.back();
+			node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
+			node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
+			break;
 		}
 		case Node::Type::Filter:
 		{
@@ -331,6 +347,8 @@ Node* Script::CreatePlainNode(Node::Type type, const std::string& name, ax::Node
 		case Node::Type::InputSignal:		m_Nodes.emplace_back(new InputSignal(id, name, position, size));		break;
 		case Node::Type::OutputSignal:		m_Nodes.emplace_back(new OutputSignal(id, name, position, size));		break;
 		case Node::Type::FourierTransform:  m_Nodes.emplace_back(new FourierTransform(id, name, position, size));   break;
+		case Node::Type::Normalize:			m_Nodes.emplace_back(new Normalize(id, name, position, size));			break;
+		case Node::Type::RemoveDC:			m_Nodes.emplace_back(new RemoveDC(id, name, position, size));			break;
 				
 		case Node::Type::Filter:			m_Nodes.emplace_back(new Filter(id, name, position, size));				break;
 		case Node::Type::Gain:				m_Nodes.emplace_back(new Gain(id, name, position, size));				break;

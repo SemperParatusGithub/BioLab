@@ -51,8 +51,8 @@ Application::Application()
 	//m_NodeEditor->SetLightColorTheme();
 	m_NodeEditor->SetDarkColorTheme();
 
-	m_ReaderThread = std::thread(&Application::SimulateReadSerialPort, this);
-	// m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
+	//m_ReaderThread = std::thread(&Application::SimulateReadSerialPort, this);
+	m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
 
 	m_LiveWindow.Close();
 	m_GoldbergerWindow.Close();
