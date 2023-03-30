@@ -52,6 +52,17 @@ private:
 	bool m_Invert = false;
 };
 
+class Square : public Node
+{
+public:
+	Square(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size);
+	~Square();
+
+	virtual void Render() override;
+	virtual float ProcessSample(float newSample) override;
+	virtual Signal ProcessSignal(const Signal& signal) override;
+};
+
 
 class Filter : public Node
 {

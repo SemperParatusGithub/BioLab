@@ -164,7 +164,9 @@ void NodeEditor::Render()
 				if (ImGui::MenuItem("Offset"))
 					m_ActiveScript.CreateNode("Offset", Node::Type::Offset, { 500.0f, 500.0f }, { 200.0f, 100.0f });
 				if (ImGui::MenuItem("Absolute"))
-					m_ActiveScript.CreateNode("Absolute", Node::Type::Absolute, { 500.0f, 500.0f }, { 200.0f, 100.0f });		
+					m_ActiveScript.CreateNode("Absolute", Node::Type::Absolute, { 500.0f, 500.0f }, { 200.0f, 100.0f });	
+				if (ImGui::MenuItem("Square"))
+					m_ActiveScript.CreateNode("Square", Node::Type::Square, { 500.0f, 500.0f }, { 200.0f, 100.0f });		
 				if (ImGui::MenuItem("Average"))
 					m_ActiveScript.CreateNode("Average", Node::Type::Average, { 500.0f, 500.0f }, { 200.0f, 100.0f });	
 				

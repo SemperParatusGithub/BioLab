@@ -69,8 +69,8 @@ void ECGAnalyzeWindow::ProcessSignal(Signal signal)
 		val /= maxElem;
 
 	float threshold = 0.3f;
-	for (auto& val : returnSignal.yValues)
-		val = val > threshold ? 1.0f : 0.0f;
+	//for (auto& val : returnSignal.yValues)
+	//	val = val > threshold ? 1.0f : 0.0f;
 
 	int n = 40;
 	std::rotate(returnSignal.yValues.begin(), returnSignal.yValues.begin() + n, returnSignal.yValues.end());

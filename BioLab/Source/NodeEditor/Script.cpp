@@ -149,6 +149,7 @@ void Script::Deserialize(const std::string& filepath)
 		case Node::Type::Filter:
 		case Node::Type::Gain:
 		case Node::Type::Absolute:
+		case Node::Type::Square:
 		case Node::Type::Offset:
 			newNode->inputPin = Pin{ inputPinName, Pin::Type::Input, inputPinID, true, newNode };
 			newNode->outputPin = Pin{ outputPinName, Pin::Type::Output, outputPinID, true, newNode };
@@ -322,6 +323,14 @@ Node* Script::CreateNode(const std::string& name, Node::Type type, const Vector2
 			node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
 			node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
 			break;
+		}		
+		case Node::Type::Square:
+		{
+			m_Nodes.emplace_back(new Square(GetNextNodeID(), name, position, size));
+			node = m_Nodes.back();
+			node->inputPin = Pin{ "Input1", Pin::Type::Input, GetNextPinID(), true, node };
+			node->outputPin = Pin{ "Output1", Pin::Type::Output, GetNextPinID(), true, node };
+			break;
 		}
 		case Node::Type::Average:
 		{
@@ -354,6 +363,7 @@ Node* Script::CreatePlainNode(Node::Type type, const std::string& name, ax::Node
 		case Node::Type::Gain:				m_Nodes.emplace_back(new Gain(id, name, position, size));				break;
 		case Node::Type::Offset:			m_Nodes.emplace_back(new Offset(id, name, position, size));				break;
 		case Node::Type::Absolute:			m_Nodes.emplace_back(new Absolute(id, name, position, size));			break;
+		case Node::Type::Square:			m_Nodes.emplace_back(new Square(id, name, position, size));				break;
 		case Node::Type::Average:			m_Nodes.emplace_back(new Average(id, name, position, size));			break;
 	}
 	return m_Nodes.back();

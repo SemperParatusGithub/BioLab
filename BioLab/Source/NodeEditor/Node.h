@@ -60,6 +60,7 @@ public:
 		Gain,
 		Offset,
 		Absolute,
+		Square,
 		Average
 	};
 

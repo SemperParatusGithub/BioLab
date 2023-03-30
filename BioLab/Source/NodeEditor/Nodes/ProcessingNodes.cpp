@@ -107,6 +107,37 @@ Signal Absolute::ProcessSignal(const Signal& signal)
 	return out;
 }
 
+Square::Square(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size)
+{
+	this->name = nodeName;
+	this->id = nodeID;
+	this->position = position;
+	this->size = size;
+
+	this->type = Node::Type::Square;
+}
+Square::~Square()
+{
+}
+
+void Square::Render()
+{
+}
+float Square::ProcessSample(float newSample)
+{
+	return newSample * newSample;
+}
+
+Signal Square::ProcessSignal(const Signal& signal)
+{
+	Signal out = signal;
+
+	for (float& y : out.yValues)
+		y = y * y;
+
+	return out;
+}
+
 
 
 Filter::Filter(ax::NodeEditor::NodeId nodeID, const std::string& nodeName, const Vector2f& position, const Vector2f& size)

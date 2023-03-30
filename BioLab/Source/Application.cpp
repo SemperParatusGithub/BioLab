@@ -43,13 +43,13 @@ Application::Application()
 	UICore::Initialize();
 	UICore::LoadFonts();
 	UICore::SetupStyle();
-	//UICore::SetLightColorTheme();
-	UICore::SetDarkColorTheme();
+	UICore::SetLightColorTheme();
+	//UICore::SetDarkColorTheme();
 
 	m_NodeEditor = std::make_unique<NodeEditor>();
 	m_NodeEditor->SetupStyle();
-	//m_NodeEditor->SetLightColorTheme();
-	m_NodeEditor->SetDarkColorTheme();
+	m_NodeEditor->SetLightColorTheme();
+	//m_NodeEditor->SetDarkColorTheme();
 
 	//m_ReaderThread = std::thread(&Application::SimulateReadSerialPort, this);
 	m_ReaderThread = std::thread(&Application::ReadSerialPort, this);
@@ -475,7 +475,7 @@ void Application::BeginDockspace()
 	static bool processDataOpen = false;
 	ImGui::BeginChild("ProcessDataChild", ImVec2(width, processDataOpen ? 400 : 45), true);
 	ImGui::PushFont(UICore::GetFont(Font::OpenSansHeader));
-	if (ImGui::CollapsingHeader("Data Analysis"))
+	if (ImGui::CollapsingHeader("Offline Analysis"))
 	{
 		processDataOpen = true;
 		ImGui::PushFont(UICore::GetFont(Font::OpenSans));
